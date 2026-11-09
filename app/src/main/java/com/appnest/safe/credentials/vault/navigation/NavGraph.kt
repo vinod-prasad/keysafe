@@ -2,10 +2,15 @@ package com.appnest.safe.credentials.vault.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.appnest.safe.credentials.vault.ui.screens.AddCredentialScreen
 import com.appnest.safe.credentials.vault.ui.screens.CheckupScreen
+import com.appnest.safe.credentials.vault.ui.screens.CredentialDetailsScreen
 import com.appnest.safe.credentials.vault.ui.screens.HomeScreen
+import com.appnest.safe.credentials.vault.ui.screens.SearchScreen
 import com.appnest.safe.credentials.vault.ui.screens.SettingsScreen
 
 @Composable
@@ -20,27 +25,48 @@ fun AppNavGraph(navController: NavHostController) {
         composable(Screen.Settings.route) {
             SettingsScreen()
         }
-        composable(Screen.AddCredential.route) {
-            com.appnest.safe.credentials.vault.ui.screens.AddCredentialScreen(
+        composable(
+            route = Screen.AddCredential.route,
+            arguments = listOf(
+                navArgument("credentialId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("key") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val credentialId = backStackEntry.arguments?.getString("credentialId")
+            val key = backStackEntry.arguments?.getString("key")
+            AddCredentialScreen(
+                credentialId = credentialId,
+                encryptionKey = key,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.Search.route) {
-            com.appnest.safe.credentials.vault.ui.screens.SearchScreen(
+            SearchScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onCredentialClick = { id -> 
+                onCredentialClick = { id ->
                     navController.navigate(Screen.CredentialDetails.createRoute(id))
                 }
             )
         }
         composable(
             route = Screen.CredentialDetails.route,
-            arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.StringType })
+            arguments = listOf(navArgument("id") { type = NavType.StringType })
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getString("id") ?: ""
-            com.appnest.safe.credentials.vault.ui.screens.CredentialDetailsScreen(
-                siteName = "Item $id Details", // Passing dummy name for now based on ID
-                onNavigateBack = { navController.popBackStack() }
+            CredentialDetailsScreen(
+                siteName = id,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { credentialId, key ->
+                    navController.navigate(Screen.AddCredential.createRoute(credentialId, key))
+                }
             )
         }
     }

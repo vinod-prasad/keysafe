@@ -1,7 +1,6 @@
 package com.appnest.safe.credentials.vault.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Settings
@@ -12,7 +11,13 @@ sealed class Screen(val route: String) {
     object Checkup : Screen("checkup")
     object Settings : Screen("settings")
     object Search : Screen("search")
-    object AddCredential : Screen("add_credential")
+    object AddCredential : Screen("add_credential?credentialId={credentialId}&key={key}") {
+        fun createRoute(credentialId: String? = null, key: String? = null) = when {
+            credentialId != null && key != null -> "add_credential?credentialId=$credentialId&key=$key"
+            credentialId != null -> "add_credential?credentialId=$credentialId"
+            else -> "add_credential"
+        }
+    }
     object CredentialDetails : Screen("credential_details/{id}") {
         fun createRoute(id: String) = "credential_details/$id"
     }

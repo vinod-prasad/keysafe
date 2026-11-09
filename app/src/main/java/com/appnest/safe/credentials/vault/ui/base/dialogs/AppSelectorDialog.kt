@@ -1,4 +1,4 @@
-package com.appnest.safe.credentials.vault.ui.components
+package com.appnest.safe.credentials.vault.ui.base.dialogs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,31 +22,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.appnest.safe.credentials.vault.data.mockdata.MockDataProvider
 
-data class AppItem(val name: String)
+data class AppItem(val name: String, val packageName: String = "")
 
 @Composable
 fun AppSelectorDialog(
     onDismissRequest: () -> Unit,
     onAppSelected: (AppItem) -> Unit
 ) {
-    // Mock list of installed apps
-    val mockApps = listOf(
-        AppItem("Aadhaar"),
-        AppItem("AadhaarFaceRd"),
-        AppItem("ABHA"),
-        AppItem("Adobe Acrobat"),
-        AppItem("Adobe Scan"),
-        AppItem("Ageas Federal"),
-        AppItem("Airtel"),
-        AppItem("All PDF Reader"),
-        AppItem("Amazon"),
-        AppItem("Android Developer Verifier")
-    )
+    val mockApps = MockDataProvider.getMockInstalledApps().map {
+        AppItem(name = it.name, packageName = it.packageName)
+    }
 
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(
@@ -70,7 +60,6 @@ fun AppSelectorDialog(
                                 .padding(vertical = 12.dp, horizontal = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Mock App Icon (colored box with initial)
                             Box(
                                 modifier = Modifier
                                     .size(32.dp)
