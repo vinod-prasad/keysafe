@@ -20,8 +20,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -51,29 +54,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.appnest.safe.credentials.vault.domain.model.CardCredential
+import com.appnest.safe.credentials.vault.domain.model.ComputerCredential
 import com.appnest.safe.credentials.vault.domain.model.Credential
 import com.appnest.safe.credentials.vault.domain.model.SecurityQuestion
+import com.appnest.safe.credentials.vault.domain.model.SiteCredential
+import com.appnest.safe.credentials.vault.ui.base.components.CategoryOrDomainLogo
 import com.appnest.safe.credentials.vault.ui.base.dialogs.EncryptionKeyPromptDialog
+import com.appnest.safe.credentials.vault.ui.base.templates.CardDetailTemplate
+import com.appnest.safe.credentials.vault.ui.base.templates.ComputerDetailTemplate
+import com.appnest.safe.credentials.vault.ui.base.templates.SiteDetailTemplate
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 import com.appnest.safe.credentials.vault.ui.viewmodel.CredentialDetailsViewModel
+import com.appnest.safe.credentials.vault.ui.viewmodel.cleanDomainDisplay
+import com.appnest.safe.credentials.vault.ui.viewmodel.getCategoryIconRes
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun CredentialDetailsScreen(
     siteName: String = "accounts.google.com",
+    favoritesOnly: Boolean = false,
     onNavigateBack: () -> Unit = {},
     onNavigateToEdit: (String, String) -> Unit = { _, _ -> },
     viewModel: CredentialDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(siteName) {
-        viewModel.loadCredentialsForSite(siteName)
+    LaunchedEffect(siteName, favoritesOnly) {
+        viewModel.loadCredentialsForSite(siteName, favoritesOnly)
     }
 
     CredentialDetailsContent(
@@ -127,16 +141,22 @@ fun CredentialDetailsContent(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = siteName.take(1).uppercase(), color = MaterialTheme.colorScheme.primary)
-                }
+                val firstCred = credentials.firstOrNull()
+                CategoryOrDomainLogo(
+                    category = firstCred?.category ?: "Site",
+                    nameOrDomain = siteName,
+                    containerSize = 36.dp,
+                    iconSize = 20.dp,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
                 Spacer(modifier = Modifier.width(16.dp))
-                Text(text = siteName, fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
+                Column {
+                    Text(text = siteName.cleanDomainDisplay(), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                    if (firstCred != null) {
+                        Text(text = "Category: ${firstCred.category}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -184,6 +204,7 @@ fun CredentialDetailItem(
     var keyDialogAction by remember { mutableStateOf<KeyAction>(KeyAction.VIEW) }
 
     var passwordVisible by remember { mutableStateOf(false) }
+    var cvvVisible by remember { mutableStateOf(false) }
     var pinVisible by remember { mutableStateOf(false) }
 
     val clipboardManager = LocalClipboardManager.current
@@ -221,13 +242,18 @@ fun CredentialDetailItem(
     val activeCredential = decryptedCredential ?: credential
 
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        // Top Item Header Row (Site name + Favorite Star)
+        // Top Item Header Row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = activeCredential.siteOrApp, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = "${activeCredential.category} • ${activeCredential.siteOrApp}",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             IconButton(onClick = onToggleFavorite, modifier = Modifier.size(24.dp)) {
                 Icon(
                     imageVector = if (activeCredential.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
@@ -238,93 +264,50 @@ fun CredentialDetailItem(
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Username Box
-        Surface(
-            shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = if (decryptedCredential != null) activeCredential.username else "Encrypted Username",
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                IconButton(
-                    onClick = {
-                        if (decryptedCredential != null) {
-                            copyToClipboard(activeCredential.username, "Username")
-                        } else {
-                            keyDialogAction = KeyAction.VIEW
-                            showKeyDialog = true
-                        }
+        // Dynamic Details Template per Category
+        when (val active = activeCredential) {
+            is CardCredential -> {
+                CardDetailTemplate(
+                    activeCredential = active,
+                    isDecrypted = decryptedCredential != null,
+                    isCvvVisible = cvvVisible,
+                    onToggleCvvVisibility = { cvvVisible = !cvvVisible },
+                    onRequestUnlock = {
+                        keyDialogAction = KeyAction.VIEW
+                        showKeyDialog = true
                     },
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = if (decryptedCredential != null) Icons.Default.ContentCopy else Icons.Default.Lock,
-                        contentDescription = "Copy username",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                    onCopy = ::copyToClipboard
+                )
+            }
+            is ComputerCredential -> {
+                ComputerDetailTemplate(
+                    activeCredential = active,
+                    isDecrypted = decryptedCredential != null,
+                    isPasswordVisible = passwordVisible,
+                    onTogglePasswordVisibility = { passwordVisible = !passwordVisible },
+                    onRequestUnlock = {
+                        keyDialogAction = KeyAction.VIEW
+                        showKeyDialog = true
+                    },
+                    onCopy = ::copyToClipboard
+                )
+            }
+            is SiteCredential -> {
+                SiteDetailTemplate(
+                    activeCredential = active,
+                    isDecrypted = decryptedCredential != null,
+                    isPasswordVisible = passwordVisible,
+                    onTogglePasswordVisibility = { passwordVisible = !passwordVisible },
+                    onRequestUnlock = {
+                        keyDialogAction = KeyAction.VIEW
+                        showKeyDialog = true
+                    },
+                    onCopy = ::copyToClipboard
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Password Box
-        Surface(
-            shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 12.dp, bottomEnd = 12.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = when {
-                        decryptedCredential == null -> "•••••••••••• (Encrypted)"
-                        passwordVisible -> activeCredential.password
-                        else -> "••••••••••••"
-                    },
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = {
-                            if (decryptedCredential != null) {
-                                passwordVisible = !passwordVisible
-                            } else {
-                                keyDialogAction = KeyAction.VIEW
-                                showKeyDialog = true
-                            }
-                        },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        val icon = if (decryptedCredential == null) Icons.Default.Lock else if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
-                        Icon(icon, contentDescription = "Toggle password visibility", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    if (decryptedCredential != null) {
-                        Spacer(modifier = Modifier.width(16.dp))
-                        IconButton(
-                            onClick = { copyToClipboard(activeCredential.password, "Password") },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy password", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-        }
-
-        // PIN Box (Optional)
+        // PIN Box (Optional for all categories)
         if (!activeCredential.pin.isNullOrEmpty()) {
             Spacer(modifier = Modifier.height(4.dp))
             Surface(
@@ -375,8 +358,14 @@ fun CredentialDetailItem(
             }
         }
 
-        // Security Questions Section (Optional)
-        if (activeCredential.securityQuestions.isNotEmpty()) {
+        // Security Questions Section (Optional for Site & Computer)
+        val questions = when (val active = activeCredential) {
+            is SiteCredential -> active.securityQuestions
+            is ComputerCredential -> active.securityQuestions
+            else -> emptyList()
+        }
+
+        if (questions.isNotEmpty()) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Security Questions",
@@ -386,7 +375,7 @@ fun CredentialDetailItem(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            activeCredential.securityQuestions.forEachIndexed { index, sq ->
+            questions.forEachIndexed { index, sq ->
                 var answerVisible by remember { mutableStateOf(false) }
 
                 Surface(
@@ -493,7 +482,7 @@ fun CredentialDetailItem(
             ) {
                 Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.CenterStart) {
                     Text(
-                        text = if (decryptedCredential != null) activeCredential.note else "Encrypted Note",
+                        text = if (decryptedCredential != null) activeCredential.note!! else "Encrypted Note",
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -558,9 +547,10 @@ fun CredentialDetailsScreenPreview() {
         CredentialDetailsContent(
             siteName = "accounts.google.com",
             credentials = listOf(
-                Credential(
+                SiteCredential(
                     id = "1",
                     siteOrApp = "accounts.google.com",
+                    category = "Site",
                     username = "appnestcare@gmail.com",
                     password = "GoogleSecurePassword123!",
                     pin = "1234",

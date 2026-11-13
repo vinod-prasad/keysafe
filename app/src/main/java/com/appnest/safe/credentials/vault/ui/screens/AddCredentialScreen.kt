@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,15 +21,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -61,6 +58,9 @@ import com.appnest.safe.credentials.vault.ui.base.components.CustomTextField
 import com.appnest.safe.credentials.vault.ui.base.components.SecureTextField
 import com.appnest.safe.credentials.vault.ui.base.dialogs.AppSelectorDialog
 import com.appnest.safe.credentials.vault.ui.base.dialogs.EncryptionKeyPromptDialog
+import com.appnest.safe.credentials.vault.ui.base.templates.CardTemplateForm
+import com.appnest.safe.credentials.vault.ui.base.templates.ComputerTemplateForm
+import com.appnest.safe.credentials.vault.ui.base.templates.SiteTemplateForm
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 import com.appnest.safe.credentials.vault.ui.viewmodel.AddCredentialEvent
 import com.appnest.safe.credentials.vault.ui.viewmodel.AddCredentialUiState
@@ -72,6 +72,7 @@ import org.koin.androidx.compose.koinViewModel
 fun AddCredentialScreen(
     credentialId: String? = null,
     encryptionKey: String? = null,
+    initialCategory: String? = null,
     onNavigateBack: () -> Unit = {},
     viewModel: AddCredentialViewModel = koinViewModel()
 ) {
@@ -81,7 +82,7 @@ fun AddCredentialScreen(
     var showAppSelectorDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    LaunchedEffect(credentialId, encryptionKey) {
+    LaunchedEffect(credentialId, encryptionKey, initialCategory) {
         if (!credentialId.isNullOrEmpty()) {
             if (!encryptionKey.isNullOrEmpty()) {
                 viewModel.loadCredentialForEditing(credentialId, encryptionKey)
@@ -89,7 +90,7 @@ fun AddCredentialScreen(
                 showUnlockDialog = true
             }
         } else {
-            viewModel.resetState()
+            viewModel.resetState(initialCategory)
         }
     }
 
@@ -149,19 +150,33 @@ fun AddCredentialScreen(
         )
     }
 
-    val domainRegex = Regex("^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")
+    val cleanDomain = when {
+        uiState.site.trim().startsWith("https://", ignoreCase = true) -> uiState.site.trim().substring(8)
+        uiState.site.trim().startsWith("http://", ignoreCase = true) -> uiState.site.trim().substring(7)
+        else -> uiState.site.trim()
+    }
+    val domainRegex = Regex("^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}(/.*)?$")
 
     AddCredentialContent(
         uiState = uiState,
         onNavigateBack = onNavigateBack,
         onShowAppSelector = { showAppSelectorDialog = true },
         onSiteChanged = viewModel::onSiteChanged,
+        onSiteFocusLost = viewModel::onSiteFocusLost,
         onCategoryChanged = viewModel::onCategoryChanged,
         onToggleFavorite = viewModel::toggleFavorite,
         onUsernameChanged = viewModel::onUsernameChanged,
         onPasswordChanged = viewModel::onPasswordChanged,
         onPinChanged = viewModel::onPinChanged,
         onNoteChanged = viewModel::onNoteChanged,
+        onCardIssuerChanged = viewModel::onCardIssuerChanged,
+        onCardNameOnCardChanged = viewModel::onCardNameOnCardChanged,
+        onCardNumberChanged = viewModel::onCardNumberChanged,
+        onCardValidityStartChanged = viewModel::onCardValidityStartChanged,
+        onCardValidityEndChanged = viewModel::onCardValidityEndChanged,
+        onCardCvvChanged = viewModel::onCardCvvChanged,
+        onToggleCardCvvVisibility = viewModel::toggleCardCvvVisibility,
+        onOsTypeChanged = viewModel::onOsTypeChanged,
         onTogglePasswordVisibility = viewModel::togglePasswordVisibility,
         onTogglePinVisibility = viewModel::togglePinVisibility,
         onAddSecurityQuestion = viewModel::addSecurityQuestion,
@@ -171,8 +186,8 @@ fun AddCredentialScreen(
         onToggleSecurityAnswerVisibility = viewModel::toggleSecurityAnswerVisibility,
         onSaveClicked = {
             if (uiState.site.isBlank()) {
-                Toast.makeText(context, "Site or app name cannot be empty", Toast.LENGTH_SHORT).show()
-            } else if (uiState.category.equals("Site", ignoreCase = true) && !domainRegex.matches(uiState.site.trim())) {
+                Toast.makeText(context, "Title / Label cannot be empty", Toast.LENGTH_SHORT).show()
+            } else if (uiState.category.equals("Site", ignoreCase = true) && !domainRegex.matches(cleanDomain)) {
                 Toast.makeText(context, "Please enter a valid domain name (e.g. google.com, appnest.in)", Toast.LENGTH_SHORT).show()
             } else {
                 showSaveDialog = true
@@ -188,12 +203,21 @@ fun AddCredentialContent(
     onNavigateBack: () -> Unit = {},
     onShowAppSelector: () -> Unit = {},
     onSiteChanged: (String) -> Unit = {},
+    onSiteFocusLost: () -> Unit = {},
     onCategoryChanged: (String) -> Unit = {},
     onToggleFavorite: () -> Unit = {},
     onUsernameChanged: (String) -> Unit = {},
     onPasswordChanged: (String) -> Unit = {},
     onPinChanged: (String) -> Unit = {},
     onNoteChanged: (String) -> Unit = {},
+    onCardIssuerChanged: (String) -> Unit = {},
+    onCardNameOnCardChanged: (String) -> Unit = {},
+    onCardNumberChanged: (String) -> Unit = {},
+    onCardValidityStartChanged: (String) -> Unit = {},
+    onCardValidityEndChanged: (String) -> Unit = {},
+    onCardCvvChanged: (String) -> Unit = {},
+    onToggleCardCvvVisibility: () -> Unit = {},
+    onOsTypeChanged: (String) -> Unit = {},
     onTogglePasswordVisibility: () -> Unit = {},
     onTogglePinVisibility: () -> Unit = {},
     onAddSecurityQuestion: () -> Unit = {},
@@ -214,9 +238,8 @@ fun AddCredentialContent(
         }
     }
 
-    val pageTitle = if (uiState.isEditMode) "Edit password" else "Add password"
-    val availableCategories = listOf("Site", "Mobile", "Laptop", "Network")
-    val isSiteCategory = uiState.category.equals("Site", ignoreCase = true)
+    val pageTitle = if (uiState.isEditMode) "Edit credential" else "Add credential"
+    val availableCategories = listOf("Site", "Card", "Computer")
 
     Scaffold(
         topBar = {
@@ -260,6 +283,7 @@ fun AddCredentialContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
                 .verticalScroll(scrollState)
                 .padding(16.dp)
         ) {
@@ -272,7 +296,7 @@ fun AddCredentialContent(
                 )
             }
 
-            // Category Selection
+            // Category Selection Chips
             Text("Category", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
             LazyRow(
@@ -311,69 +335,65 @@ fun AddCredentialContent(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Text(
-                if (isSiteCategory) "Site or app" else "Category Label",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            // Dynamic Category Form Templates
+            when {
+                uiState.category.equals("Card", ignoreCase = true) -> {
+                    CardTemplateForm(
+                        cardName = uiState.site,
+                        cardIssuer = uiState.cardIssuer,
+                        cardNameOnCard = uiState.cardNameOnCard,
+                        cardNumber = uiState.cardNumber,
+                        cardValidityStart = uiState.cardValidityStart,
+                        cardValidityEnd = uiState.cardValidityEnd,
+                        cardCvv = uiState.cardCvv,
+                        isCardCvvVisible = uiState.isCardCvvVisible,
+                        onCardNameChanged = onSiteChanged,
+                        onCardIssuerChanged = onCardIssuerChanged,
+                        onCardNameOnCardChanged = onCardNameOnCardChanged,
+                        onCardNumberChanged = onCardNumberChanged,
+                        onCardValidityStartChanged = onCardValidityStartChanged,
+                        onCardValidityEndChanged = onCardValidityEndChanged,
+                        onCardCvvChanged = onCardCvvChanged,
+                        onToggleCardCvvVisibility = onToggleCardCvvVisibility,
+                        onCopy = ::copyToClipboard
+                    )
+                }
 
-            CustomTextField(
-                value = uiState.site,
-                onValueChange = onSiteChanged,
-                placeholder = if (isSiteCategory) "e.g. google.com or appnest.in" else uiState.category,
-                enabled = isSiteCategory,
-                onCopy = { copyToClipboard(uiState.site, "Site") }
-            )
+                uiState.category.equals("Computer", ignoreCase = true) -> {
+                    ComputerTemplateForm(
+                        computerName = uiState.site,
+                        osType = uiState.osType,
+                        username = uiState.username,
+                        password = uiState.password,
+                        isPasswordVisible = uiState.isPasswordVisible,
+                        onComputerNameChanged = onSiteChanged,
+                        onOsTypeChanged = onOsTypeChanged,
+                        onUsernameChanged = onUsernameChanged,
+                        onPasswordChanged = onPasswordChanged,
+                        onTogglePasswordVisibility = onTogglePasswordVisibility,
+                        onCopy = ::copyToClipboard
+                    )
+                }
 
-            if (isSiteCategory) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = onShowAppSelector,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Default.Apps, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
-                    Text(" Select app", color = MaterialTheme.colorScheme.onPrimaryContainer)
+                else -> {
+                    SiteTemplateForm(
+                        site = uiState.site,
+                        username = uiState.username,
+                        password = uiState.password,
+                        isPasswordVisible = uiState.isPasswordVisible,
+                        onSiteChanged = onSiteChanged,
+                        onSiteFocusLost = onSiteFocusLost,
+                        onShowAppSelector = onShowAppSelector,
+                        onUsernameChanged = onUsernameChanged,
+                        onPasswordChanged = onPasswordChanged,
+                        onTogglePasswordVisibility = onTogglePasswordVisibility,
+                        onCopy = ::copyToClipboard
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-            Text("Make sure that you're saving your current password", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            CustomTextField(
-                value = uiState.username,
-                onValueChange = onUsernameChanged,
-                placeholder = "Username",
-                shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomEnd = 0.dp, bottomStart = 0.dp),
-                onCopy = { copyToClipboard(uiState.username, "Username") }
-            )
-
-            // Password Field with Hide/Show & Copy options
-            SecureTextField(
-                value = uiState.password,
-                onValueChange = onPasswordChanged,
-                placeholder = "Password",
-                isTextVisible = uiState.isPasswordVisible,
-                onToggleVisibility = onTogglePasswordVisibility,
-                shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomEnd = 8.dp, bottomStart = 8.dp),
-                onCopy = { copyToClipboard(uiState.password, "Password") }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = { /* Suggest Password Logic */ },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Password, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
-                Text(" Suggest strong password", color = MaterialTheme.colorScheme.onPrimaryContainer)
-            }
-
-            // PIN (Optional) with Hide/Show & Copy options
-            Spacer(modifier = Modifier.height(24.dp))
+            // Common Field: PIN (Optional for all categories)
+            Spacer(modifier = Modifier.height(20.dp))
             Text("PIN (Optional)", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -388,87 +408,88 @@ fun AddCredentialContent(
                 onCopy = { copyToClipboard(uiState.pin, "PIN") }
             )
 
-            // Security Questions Section (Optional)
-            Spacer(modifier = Modifier.height(24.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Security Questions (Optional)",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                TextButton(onClick = onAddSecurityQuestion) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Question")
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-
-            uiState.securityQuestions.forEachIndexed { index, item ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .padding(12.dp)
+            // Common Field: Security Questions (Optional for Site & Computer)
+            if (!uiState.category.equals("Card", ignoreCase = true)) {
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Question ${index + 1}",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.primary
+                    Text(
+                        "Security Questions (Optional)",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(onClick = onAddSecurityQuestion) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
                         )
-                        IconButton(
-                            onClick = { onRemoveSecurityQuestion(item.id) },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Remove question",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add Question")
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    CustomTextField(
-                        value = item.question,
-                        onValueChange = { newQ -> onUpdateSecurityQuestion(item.id, newQ) },
-                        placeholder = "Security Question (e.g. Mother's maiden name)",
-                        onCopy = { copyToClipboard(item.question, "Question") }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Answer Field with Hide/Show & Copy options
-                    SecureTextField(
-                        value = item.answer,
-                        onValueChange = { newA -> onUpdateSecurityAnswer(item.id, newA) },
-                        placeholder = "Answer",
-                        isTextVisible = item.isAnswerVisible,
-                        onToggleVisibility = { onToggleSecurityAnswerVisibility(item.id) },
-                        shape = RoundedCornerShape(8.dp),
-                        onCopy = { copyToClipboard(item.answer, "Answer") }
-                    )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                uiState.securityQuestions.forEachIndexed { index, item ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Question ${index + 1}",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            IconButton(
+                                onClick = { onRemoveSecurityQuestion(item.id) },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Remove question",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CustomTextField(
+                            value = item.question,
+                            onValueChange = { newQ -> onUpdateSecurityQuestion(item.id, newQ) },
+                            placeholder = "Security Question (e.g. Mother's maiden name)",
+                            onCopy = { copyToClipboard(item.question, "Question") }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        SecureTextField(
+                            value = item.answer,
+                            onValueChange = { newA -> onUpdateSecurityAnswer(item.id, newA) },
+                            placeholder = "Answer",
+                            isTextVisible = item.isAnswerVisible,
+                            onToggleVisibility = { onToggleSecurityAnswerVisibility(item.id) },
+                            shape = RoundedCornerShape(8.dp),
+                            onCopy = { copyToClipboard(item.answer, "Answer") }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
             }
 
-            // Note (Optional)
+            // Common Field: Note (Optional for all categories)
             Spacer(modifier = Modifier.height(16.dp))
             Text("Note (Optional)", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))

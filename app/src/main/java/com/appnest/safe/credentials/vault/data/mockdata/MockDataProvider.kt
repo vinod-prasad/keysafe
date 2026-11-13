@@ -1,7 +1,10 @@
 package com.appnest.safe.credentials.vault.data.mockdata
 
+import com.appnest.safe.credentials.vault.domain.model.CardCredential
+import com.appnest.safe.credentials.vault.domain.model.ComputerCredential
 import com.appnest.safe.credentials.vault.domain.model.Credential
 import com.appnest.safe.credentials.vault.domain.model.SecurityQuestion
+import com.appnest.safe.credentials.vault.domain.model.SiteCredential
 import java.util.UUID
 
 data class MockAppInfo(
@@ -13,17 +16,17 @@ object MockDataProvider {
 
     fun getInitialCredentials(): List<Credential> {
         return listOf(
-            Credential(
+            SiteCredential(
                 id = "mock-1",
                 siteOrApp = "7stardigitalnetwork.com",
-                category = "Network",
+                category = "Site",
                 username = "admin@7stardigital.com",
                 password = "7StarSecurePass#2026",
                 pin = "7788",
                 note = "Primary ISP admin account",
                 isFavorite = false
             ),
-            Credential(
+            SiteCredential(
                 id = "mock-2",
                 siteOrApp = "accounts.google.com",
                 category = "Site",
@@ -37,69 +40,30 @@ object MockDataProvider {
                 ),
                 isFavorite = true
             ),
-            Credential(
+            CardCredential(
                 id = "mock-3",
-                siteOrApp = "accounts.google.com",
-                category = "Site",
-                siteLogo = "com.google.android.googlequicksearchbox",
-                username = "NaveshaniPrasad",
-                password = "GoogleWorkPass456!",
+                siteOrApp = "Primary HDFC Visa Card",
+                category = "Card",
+                cardIssuer = "HDFC Bank",
+                cardNameOnCard = "John Doe",
+                cardNumber = "4111 2222 3333 4444",
+                cardValidityStart = "05/22",
+                cardValidityEnd = "05/29",
+                cardCvv = "998",
                 pin = "4321",
-                note = "Personal Google Cloud account",
+                note = "Primary international credit card",
                 isFavorite = true
             ),
-            Credential(
+            ComputerCredential(
                 id = "mock-4",
-                siteOrApp = "adcolony.com",
-                category = "Site",
-                username = "monetization@adcolony.com",
-                password = "AdColonyPass#99",
-                note = "AdMob mediation partner",
-                isFavorite = false
-            ),
-            Credential(
-                id = "mock-5",
-                siteOrApp = "adobe.com",
-                category = "Laptop",
-                username = "designer@appnest.com",
-                password = "AdobeCreativeCloud2026",
+                siteOrApp = "Work MacBook Pro",
+                category = "Computer",
+                osType = "Mac",
+                username = "developer_admin",
+                password = "MacBookSecurePass2026!",
                 pin = "9900",
-                note = "Creative Cloud Subscription",
+                note = "Company workstation login",
                 isFavorite = false
-            ),
-            Credential(
-                id = "mock-6",
-                siteOrApp = "adstargets.com",
-                category = "Site",
-                username = "publisher@adstargets.com",
-                password = "AdsTargetsPass123",
-                isFavorite = false
-            ),
-            Credential(
-                id = "mock-7",
-                siteOrApp = "airdroid.com",
-                category = "Mobile",
-                username = "device_remote@airdroid.com",
-                password = "AirDroidKey#2026",
-                isFavorite = false
-            ),
-            Credential(
-                id = "mock-8",
-                siteOrApp = "airpush.com",
-                category = "Mobile",
-                username = "push_ads@airpush.com",
-                password = "AirPushPass789",
-                isFavorite = false
-            ),
-            Credential(
-                id = "mock-9",
-                siteOrApp = "AJIO Online Shopping App",
-                category = "Mobile",
-                siteLogo = "com.ril.ajio",
-                username = "shopper@ajio.com",
-                password = "AjioShoppingPass@1",
-                note = "Shopping account",
-                isFavorite = true
             )
         )
     }

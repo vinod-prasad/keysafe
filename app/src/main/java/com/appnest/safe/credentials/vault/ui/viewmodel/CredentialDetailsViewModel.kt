@@ -28,17 +28,33 @@ class CredentialDetailsViewModel(
     private val _uiState = MutableStateFlow(CredentialDetailsUiState())
     val uiState: StateFlow<CredentialDetailsUiState> = _uiState.asStateFlow()
 
-    fun loadCredentialsForSite(siteNameOrId: String) {
+    fun loadCredentialsForSite(siteNameOrId: String, favoritesOnly: Boolean = false) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            val targetSite = getCredentialUseCase.getById(siteNameOrId)?.siteOrApp ?: siteNameOrId
+            val existingItem = getCredentialUseCase.getById(siteNameOrId)
+            val targetSite = existingItem?.siteOrApp ?: siteNameOrId
             _uiState.value = _uiState.value.copy(siteName = targetSite)
 
             getCredentialUseCase.getAll().collect { allList ->
-                val matching = allList.filter { it.siteOrApp.equals(targetSite, ignoreCase = true) || it.id == siteNameOrId }
+                val matching = allList.filter { item ->
+                    val matchesCategoryGroup = when (item.category.lowercase()) {
+                        "card" -> item.cardIssuer.orEmpty().equals(siteNameOrId, ignoreCase = true) || item.siteOrApp.equals(siteNameOrId, ignoreCase = true) || item.id == siteNameOrId
+                        "computer" -> item.osType.orEmpty().equals(siteNameOrId, ignoreCase = true) || item.siteOrApp.equals(siteNameOrId, ignoreCase = true) || item.id == siteNameOrId
+                        else -> item.siteOrApp.equals(siteNameOrId, ignoreCase = true) || item.id == siteNameOrId
+                    }
+                    matchesCategoryGroup && (!favoritesOnly || item.isFavorite)
+                }
+                val displayTitle = matching.firstOrNull()?.let { item ->
+                    when (item.category.lowercase()) {
+                        "card" -> item.cardIssuer?.ifBlank { item.siteOrApp } ?: item.siteOrApp
+                        "computer" -> item.osType?.ifBlank { item.siteOrApp } ?: item.siteOrApp
+                        else -> item.siteOrApp
+                    }
+                } ?: targetSite
+
                 _uiState.value = _uiState.value.copy(
-                    siteName = matching.firstOrNull()?.siteOrApp ?: targetSite,
+                    siteName = displayTitle,
                     credentials = matching,
                     isLoading = false
                 )

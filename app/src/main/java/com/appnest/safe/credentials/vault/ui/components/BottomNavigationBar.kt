@@ -5,49 +5,33 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.appnest.safe.credentials.vault.navigation.BottomNavItem
+import com.appnest.safe.credentials.vault.navigation.NavigationState
+import com.appnest.safe.credentials.vault.navigation.Navigator
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
+fun BottomNavigationBar(
+    navigationState: NavigationState,
+    navigator: Navigator
+) {
     val items = listOf(
         BottomNavItem.Accounts,
-        BottomNavItem.Checkup,
+        BottomNavItem.Favorites,
         BottomNavItem.Settings
     )
 
     NavigationBar {
-        val navBackStackEntry = navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry.value?.destination?.route
-
         items.forEach { item ->
+            val isSelected = item.key == navigationState.topLevelRoute
+
             NavigationBarItem(
                 icon = { Icon(imageVector = item.icon, contentDescription = item.title) },
                 label = { Text(text = item.title) },
-                selected = currentRoute == item.route,
+                selected = isSelected,
                 onClick = {
-                    navController.navigate(item.route) {
-                        navController.graph.startDestinationRoute?.let { route ->
-                            popUpTo(route) {
-                                saveState = true
-                            }
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    navigator.navigate(item.key)
                 }
             )
         }
     }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-private fun BottomNavItemPreview() {
-    BottomNavigationBar(
-        navController = androidx.navigation.compose.rememberNavController()
-    )
 }

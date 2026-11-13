@@ -32,6 +32,10 @@ import androidx.compose.ui.unit.sp
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 // Add CreatePinView Import implicitly through same package
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
+
 @Composable
 fun SetupAuthScreen(
     onSelectDeviceLock: () -> Unit,
@@ -43,6 +47,8 @@ fun SetupAuthScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .imePadding()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

@@ -44,32 +44,49 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appnest.safe.credentials.vault.R
+import com.appnest.safe.credentials.vault.navigation.Navigator
+import com.appnest.safe.credentials.vault.navigation.Screen
+import com.appnest.safe.credentials.vault.ui.base.components.CategoryOrDomainLogo
+import com.appnest.safe.credentials.vault.ui.base.dialogs.CategorySelectionDialog
 import com.appnest.safe.credentials.vault.ui.base.dialogs.EncryptionKeyPromptDialog
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 import com.appnest.safe.credentials.vault.ui.viewmodel.HomeUiState
 import com.appnest.safe.credentials.vault.ui.viewmodel.HomeViewModel
 import com.appnest.safe.credentials.vault.ui.viewmodel.SiteGroupItem
+import com.appnest.safe.credentials.vault.ui.viewmodel.cleanDomainDisplay
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HomeScreen(
-    navController: androidx.navigation.NavController,
+    navigator: Navigator,
     viewModel: HomeViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showCategoryDialog by remember { mutableStateOf(false) }
+
+    if (showCategoryDialog) {
+        CategorySelectionDialog(
+            onDismissRequest = { showCategoryDialog = false },
+            onCategorySelected = { category ->
+                showCategoryDialog = false
+                navigator.navigate(Screen.AddCredential(category = category))
+            }
+        )
+    }
 
     HomeScreenContent(
         uiState = uiState,
-        onSearchClick = { navController.navigate(com.appnest.safe.credentials.vault.navigation.Screen.Search.route) },
-        onAddCredentialClick = { navController.navigate(com.appnest.safe.credentials.vault.navigation.Screen.AddCredential.route) },
+        onSearchClick = { navigator.navigate(Screen.Search) },
+        onAddCredentialClick = { showCategoryDialog = true },
         onCredentialItemClick = { siteItem ->
-            navController.navigate(com.appnest.safe.credentials.vault.navigation.Screen.CredentialDetails.createRoute(siteItem.siteName))
+            navigator.navigate(Screen.CredentialDetails(siteItem.siteName))
         },
         onSeedMockData = { key ->
             viewModel.seedInitialMockData(key)
@@ -85,7 +102,7 @@ fun HomeScreenContent(
     onCredentialItemClick: (SiteGroupItem) -> Unit = {},
     onSeedMockData: (String) -> Unit = {}
 ) {
-    val categories = listOf("All", "Site", "Mobile", "Laptop", "Network")
+    val categories = listOf("All", "Site", "Card", "Computer")
     var selectedCategory by remember { mutableStateOf(categories[0]) }
     var showSeedKeyDialog by remember { mutableStateOf(false) }
 
@@ -95,15 +112,22 @@ fun HomeScreenContent(
         } else {
             uiState.rawCredentials.filter { it.category.equals(selectedCategory, ignoreCase = true) }
         }
-        filteredRaw.groupBy { it.siteOrApp }
-            .map { (siteName, items) ->
-                SiteGroupItem(
-                    siteName = siteName,
-                    siteLogo = items.firstOrNull()?.siteLogo,
-                    accountCount = if (items.size > 1) items.size else 0,
-                    representativeId = items.first().id
-                )
+        filteredRaw.groupBy { cred ->
+            val rawName = when (cred.category.lowercase()) {
+                "card" -> cred.cardIssuer.takeIf { !it.isNullOrBlank() } ?: cred.siteOrApp
+                "computer" -> cred.osType.takeIf { !it.isNullOrBlank() } ?: "Computer"
+                else -> cred.siteOrApp
             }
+            rawName.cleanDomainDisplay()
+        }.map { (groupName, items) ->
+            SiteGroupItem(
+                siteName = groupName,
+                siteLogo = items.firstOrNull()?.siteLogo,
+                category = items.firstOrNull()?.category ?: "Site",
+                accountCount = if (items.size > 1) items.size else 0,
+                representativeId = items.first().id
+            )
+        }
     }
 
     if (showSeedKeyDialog) {
@@ -314,7 +338,7 @@ fun AddPasswordRow(onClick: () -> Unit) {
         }
         Spacer(modifier = Modifier.width(16.dp))
         Text(
-            text = "Add password",
+            text = "Add credential",
             fontSize = 16.sp,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium
@@ -333,14 +357,10 @@ fun CredentialListItem(credential: SiteGroupItem, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                 Text(text = credential.siteName.take(1).uppercase(), color = MaterialTheme.colorScheme.primary)
-            }
+            CategoryOrDomainLogo(
+                category = credential.category,
+                nameOrDomain = credential.siteName
+            )
             Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = credential.siteName,

@@ -13,7 +13,7 @@ class KeySafeDatabaseHelper(context: Context) : SQLiteOpenHelper(
 
     companion object {
         private const val DATABASE_NAME = "keysafe_vault.db"
-        private const val DATABASE_VERSION = 3
+        private const val DATABASE_VERSION = 4
 
         // Master Table: Credentials
         const val TABLE_CREDENTIALS = "credentials"
@@ -26,6 +26,18 @@ class KeySafeDatabaseHelper(context: Context) : SQLiteOpenHelper(
         const val COLUMN_CRED_PIN = "pin"
         const val COLUMN_CRED_NOTE = "note"
         const val COLUMN_CRED_IS_FAVORITE = "is_favorite"
+
+        // Card Template Columns
+        const val COLUMN_CARD_ISSUER = "card_issuer"
+        const val COLUMN_CARD_NAME_ON_CARD = "card_name_on_card"
+        const val COLUMN_CARD_NUMBER = "card_number"
+        const val COLUMN_CARD_VALIDITY_START = "card_validity_start"
+        const val COLUMN_CARD_VALIDITY_END = "card_validity_end"
+        const val COLUMN_CARD_CVV = "card_cvv"
+
+        // Computer Template Columns
+        const val COLUMN_OS_TYPE = "os_type"
+
         const val COLUMN_CRED_CREATED_AT = "created_at"
         const val COLUMN_CRED_UPDATED_AT = "updated_at"
 
@@ -44,11 +56,18 @@ class KeySafeDatabaseHelper(context: Context) : SQLiteOpenHelper(
                 $COLUMN_CRED_SITE TEXT NOT NULL,
                 $COLUMN_CRED_CATEGORY TEXT NOT NULL DEFAULT 'Site',
                 $COLUMN_CRED_SITE_LOGO TEXT,
-                $COLUMN_CRED_USERNAME TEXT NOT NULL,
-                $COLUMN_CRED_PASSWORD TEXT NOT NULL,
+                $COLUMN_CRED_USERNAME TEXT,
+                $COLUMN_CRED_PASSWORD TEXT,
                 $COLUMN_CRED_PIN TEXT,
                 $COLUMN_CRED_NOTE TEXT,
                 $COLUMN_CRED_IS_FAVORITE INTEGER NOT NULL DEFAULT 0,
+                $COLUMN_CARD_ISSUER TEXT,
+                $COLUMN_CARD_NAME_ON_CARD TEXT,
+                $COLUMN_CARD_NUMBER TEXT,
+                $COLUMN_CARD_VALIDITY_START TEXT,
+                $COLUMN_CARD_VALIDITY_END TEXT,
+                $COLUMN_CARD_CVV TEXT,
+                $COLUMN_OS_TYPE TEXT,
                 $COLUMN_CRED_CREATED_AT INTEGER NOT NULL,
                 $COLUMN_CRED_UPDATED_AT INTEGER NOT NULL
             )
@@ -70,21 +89,20 @@ class KeySafeDatabaseHelper(context: Context) : SQLiteOpenHelper(
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
-            try {
-                db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CRED_SITE_LOGO TEXT")
-                db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CRED_IS_FAVORITE INTEGER NOT NULL DEFAULT 0")
-            } catch (e: Exception) {
-                // Ignore fallback
-            }
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CRED_SITE_LOGO TEXT") }
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CRED_IS_FAVORITE INTEGER NOT NULL DEFAULT 0") }
         }
         if (oldVersion < 3) {
-            try {
-                db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CRED_CATEGORY TEXT NOT NULL DEFAULT 'Site'")
-            } catch (e: Exception) {
-                db.execSQL("DROP TABLE IF EXISTS $TABLE_SECURITY_QUESTIONS")
-                db.execSQL("DROP TABLE IF EXISTS $TABLE_CREDENTIALS")
-                onCreate(db)
-            }
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CRED_CATEGORY TEXT NOT NULL DEFAULT 'Site'") }
+        }
+        if (oldVersion < 4) {
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CARD_ISSUER TEXT") }
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CARD_NAME_ON_CARD TEXT") }
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CARD_NUMBER TEXT") }
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CARD_VALIDITY_START TEXT") }
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CARD_VALIDITY_END TEXT") }
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CARD_CVV TEXT") }
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_OS_TYPE TEXT") }
         }
     }
 

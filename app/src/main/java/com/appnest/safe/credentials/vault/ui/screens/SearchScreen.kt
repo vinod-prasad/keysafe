@@ -1,6 +1,5 @@
 package com.appnest.safe.credentials.vault.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,12 +9,12 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,8 +45,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appnest.safe.credentials.vault.domain.model.Credential
+import com.appnest.safe.credentials.vault.ui.base.components.CategoryOrDomainLogo
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 import com.appnest.safe.credentials.vault.ui.viewmodel.SearchViewModel
+import com.appnest.safe.credentials.vault.ui.viewmodel.cleanDomainDisplay
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -128,6 +129,7 @@ fun SearchScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
         ) {
             if (filteredList.isNotEmpty()) {
                 Text(
@@ -169,18 +171,14 @@ fun SearchCredentialListItem(credential: Credential, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = credential.siteOrApp.take(1).uppercase(), color = MaterialTheme.colorScheme.primary)
-        }
+        CategoryOrDomainLogo(
+            category = credential.category,
+            nameOrDomain = credential.siteOrApp
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = credential.siteOrApp,
+                text = credential.siteOrApp.cleanDomainDisplay(),
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
@@ -204,7 +202,7 @@ fun SearchScreenPreview() {
         SearchScreenContent(
             searchQuery = "google",
             filteredList = listOf(
-                Credential(id = "1", siteOrApp = "accounts.google.com", username = "appnestcare@gmail.com", password = "123")
+                com.appnest.safe.credentials.vault.domain.model.SiteCredential(id = "1", siteOrApp = "accounts.google.com", username = "appnestcare@gmail.com", password = "123")
             )
         )
     }

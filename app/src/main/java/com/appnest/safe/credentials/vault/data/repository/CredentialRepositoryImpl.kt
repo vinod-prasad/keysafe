@@ -5,8 +5,11 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import com.appnest.safe.credentials.vault.data.db.KeySafeDatabaseHelper
 import com.appnest.safe.credentials.vault.data.mockdata.MockDataProvider
+import com.appnest.safe.credentials.vault.domain.model.CardCredential
+import com.appnest.safe.credentials.vault.domain.model.ComputerCredential
 import com.appnest.safe.credentials.vault.domain.model.Credential
 import com.appnest.safe.credentials.vault.domain.model.SecurityQuestion
+import com.appnest.safe.credentials.vault.domain.model.SiteCredential
 import com.appnest.safe.credentials.vault.domain.repository.CredentialRepository
 import com.appnest.safe.credentials.vault.domain.transformer.DataTransformer
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +38,11 @@ class CredentialRepositoryImpl(
             val encPin = credential.pin?.let { transformer.transformForStorage(it, encryptionKey) }
             val encNote = credential.note?.let { transformer.transformForStorage(it, encryptionKey) }
 
+            // Card specific encrypted fields
+            val encCardNumber = credential.cardNumber?.let { transformer.transformForStorage(it, encryptionKey) }
+            val encCardCvv = credential.cardCvv?.let { transformer.transformForStorage(it, encryptionKey) }
+            val encCardNameOnCard = credential.cardNameOnCard?.let { transformer.transformForStorage(it, encryptionKey) }
+
             val credValues = ContentValues().apply {
                 put(KeySafeDatabaseHelper.COLUMN_CRED_ID, credential.id)
                 put(KeySafeDatabaseHelper.COLUMN_CRED_SITE, encSite)
@@ -45,6 +53,18 @@ class CredentialRepositoryImpl(
                 put(KeySafeDatabaseHelper.COLUMN_CRED_PIN, encPin)
                 put(KeySafeDatabaseHelper.COLUMN_CRED_NOTE, encNote)
                 put(KeySafeDatabaseHelper.COLUMN_CRED_IS_FAVORITE, if (credential.isFavorite) 1 else 0)
+
+                // Card fields
+                put(KeySafeDatabaseHelper.COLUMN_CARD_ISSUER, credential.cardIssuer)
+                put(KeySafeDatabaseHelper.COLUMN_CARD_NAME_ON_CARD, encCardNameOnCard)
+                put(KeySafeDatabaseHelper.COLUMN_CARD_NUMBER, encCardNumber)
+                put(KeySafeDatabaseHelper.COLUMN_CARD_VALIDITY_START, credential.cardValidityStart)
+                put(KeySafeDatabaseHelper.COLUMN_CARD_VALIDITY_END, credential.cardValidityEnd)
+                put(KeySafeDatabaseHelper.COLUMN_CARD_CVV, encCardCvv)
+
+                // Computer field
+                put(KeySafeDatabaseHelper.COLUMN_OS_TYPE, credential.osType)
+
                 put(KeySafeDatabaseHelper.COLUMN_CRED_CREATED_AT, credential.createdAt)
                 put(KeySafeDatabaseHelper.COLUMN_CRED_UPDATED_AT, credential.updatedAt)
             }
@@ -99,6 +119,10 @@ class CredentialRepositoryImpl(
         val decPin = credential.pin?.let { transformer.transformFromStorage(it, key) }
         val decNote = credential.note?.let { transformer.transformFromStorage(it, key) }
 
+        val decCardNumber = credential.cardNumber?.let { transformer.transformFromStorage(it, key) }
+        val decCardCvv = credential.cardCvv?.let { transformer.transformFromStorage(it, key) }
+        val decCardNameOnCard = credential.cardNameOnCard?.let { transformer.transformFromStorage(it, key) }
+
         val decSecurityQuestions = credential.securityQuestions.map { sq ->
             SecurityQuestion(
                 id = sq.id,
@@ -107,13 +131,29 @@ class CredentialRepositoryImpl(
             )
         }
 
-        credential.copy(
-            username = decUsername,
-            password = decPassword,
-            pin = decPin,
-            note = decNote,
-            securityQuestions = decSecurityQuestions
-        )
+        when (credential) {
+            is SiteCredential -> credential.copy(
+                username = decUsername,
+                password = decPassword,
+                pin = decPin,
+                note = decNote,
+                securityQuestions = decSecurityQuestions
+            )
+            is CardCredential -> credential.copy(
+                cardNumber = decCardNumber ?: "",
+                cardCvv = decCardCvv ?: "",
+                cardNameOnCard = decCardNameOnCard ?: "",
+                pin = decPin,
+                note = decNote
+            )
+            is ComputerCredential -> credential.copy(
+                username = decUsername,
+                password = decPassword,
+                pin = decPin,
+                note = decNote,
+                securityQuestions = decSecurityQuestions
+            )
+        }
     }
 
     override suspend fun getCredentialById(id: String): Credential? = withContext(Dispatchers.IO) {
@@ -213,6 +253,18 @@ class CredentialRepositoryImpl(
         val pin = c.getString(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_PIN))
         val note = c.getString(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_NOTE))
         val isFavorite = c.getInt(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_IS_FAVORITE)) == 1
+
+        // Card fields
+        val cardIssuer = getNullableString(c, KeySafeDatabaseHelper.COLUMN_CARD_ISSUER)
+        val cardNameOnCard = getNullableString(c, KeySafeDatabaseHelper.COLUMN_CARD_NAME_ON_CARD)
+        val cardNumber = getNullableString(c, KeySafeDatabaseHelper.COLUMN_CARD_NUMBER)
+        val cardValidityStart = getNullableString(c, KeySafeDatabaseHelper.COLUMN_CARD_VALIDITY_START)
+        val cardValidityEnd = getNullableString(c, KeySafeDatabaseHelper.COLUMN_CARD_VALIDITY_END)
+        val cardCvv = getNullableString(c, KeySafeDatabaseHelper.COLUMN_CARD_CVV)
+
+        // Computer fields
+        val osType = getNullableString(c, KeySafeDatabaseHelper.COLUMN_OS_TYPE)
+
         val createdAt = c.getLong(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_CREATED_AT))
         val updatedAt = c.getLong(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_UPDATED_AT))
 
@@ -236,7 +288,7 @@ class CredentialRepositoryImpl(
             }
         }
 
-        return Credential(
+        return Credential.create(
             id = id,
             siteOrApp = site,
             category = category,
@@ -245,10 +297,22 @@ class CredentialRepositoryImpl(
             password = password,
             pin = pin,
             note = note,
+            cardIssuer = cardIssuer,
+            cardNameOnCard = cardNameOnCard,
+            cardNumber = cardNumber,
+            cardValidityStart = cardValidityStart,
+            cardValidityEnd = cardValidityEnd,
+            cardCvv = cardCvv,
+            osType = osType,
             securityQuestions = securityQuestions,
             isFavorite = isFavorite,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
+    }
+
+    private fun getNullableString(c: Cursor, columnName: String): String? {
+        val idx = c.getColumnIndex(columnName)
+        return if (idx != -1 && !c.isNull(idx)) c.getString(idx) else null
     }
 }

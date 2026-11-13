@@ -29,6 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
+
 @Composable
 fun PinAuthScreen(expectedPin: String, onAuthenticated: () -> Unit) {
     var pin by remember { mutableStateOf("") }
@@ -38,6 +42,8 @@ fun PinAuthScreen(expectedPin: String, onAuthenticated: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .imePadding()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally

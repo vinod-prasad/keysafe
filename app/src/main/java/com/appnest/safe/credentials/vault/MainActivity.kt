@@ -15,42 +15,42 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
-import kotlinx.coroutines.launch
-import androidx.navigation.compose.rememberNavController
 import com.appnest.safe.credentials.vault.domain.AppLockManager
-import com.appnest.safe.credentials.vault.navigation.AppNavGraph
+import com.appnest.safe.credentials.vault.navigation.AppNavDisplay
+import com.appnest.safe.credentials.vault.navigation.Navigator
 import com.appnest.safe.credentials.vault.navigation.Screen
+import com.appnest.safe.credentials.vault.navigation.rememberNavigationState
 import com.appnest.safe.credentials.vault.ui.components.BottomNavigationBar
 import com.appnest.safe.credentials.vault.ui.screens.AuthScreen
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 class MainActivity : FragmentActivity() {
-    
+
     private val appLockManager: AppLockManager by inject()
     private val APP_UPDATE_REQUEST_CODE = 1001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
+
         checkForAppUpdate()
-        
+
         setContent {
             val settingsManager: com.appnest.safe.credentials.vault.data.SettingsManager by inject()
             val isAppLockEnabled by settingsManager.isAppLockEnabledFlow.collectAsState(initial = true)
@@ -62,7 +62,7 @@ class MainActivity : FragmentActivity() {
             val themeMode by settingsManager.themeModeFlow.collectAsState(initial = "SYSTEM")
             val fontStyle by settingsManager.fontStyleFlow.collectAsState(initial = "DEFAULT")
             val fontSize by settingsManager.fontSizeFlow.collectAsState(initial = "DEFAULT")
-            
+
             val scope = androidx.compose.runtime.rememberCoroutineScope()
 
             // Keep AppLockManager in sync with settings
@@ -105,38 +105,33 @@ class MainActivity : FragmentActivity() {
                         }
                     }
                     else -> {
-                        val navController = rememberNavController()
-                        var adPlacement by remember { mutableStateOf(AdPlacement.TOP) }
+                        val navigationState = rememberNavigationState(
+                            startRoute = Screen.Home,
+                            topLevelRoutes = setOf(Screen.Home, Screen.Favorites, Screen.Settings)
+                        )
+                        val navigator = remember(navigationState) { Navigator(navigationState) }
 
-                        var currentRoute by remember { mutableStateOf<String?>(null) }
+                        val currentTopLevel = navigationState.topLevelRoute
+                        val activeStack = navigationState.backStacks[currentTopLevel]
+                        val currentKey = activeStack?.lastOrNull() ?: currentTopLevel
 
-                        // Navigation Listener for Monetization or Analytics
-                        DisposableEffect(navController) {
-                            val listener = androidx.navigation.NavController.OnDestinationChangedListener { _, destination, _ ->
-                                Log.d("Navigation", "Navigated to ${destination.route}")
-                                currentRoute = destination.route
-                                
-                                adPlacement = when {
-                                    destination.route == Screen.Home.route || 
-                                    destination.route == Screen.Checkup.route || 
-                                    destination.route == Screen.Settings.route -> AdPlacement.BOTTOM
-                                    
-                                    destination.route == Screen.AddCredential.route -> AdPlacement.TOP
-                                    destination.route?.startsWith("credential_details") == true -> AdPlacement.BOTTOM
-                                    else -> AdPlacement.NONE
-                                }
-                            }
-                            navController.addOnDestinationChangedListener(listener)
-                            onDispose {
-                                navController.removeOnDestinationChangedListener(listener)
-                            }
+                        val adPlacement = when (currentKey) {
+                            is Screen.Home, is Screen.Favorites, is Screen.Settings -> AdPlacement.BOTTOM
+                            is Screen.AddCredential -> AdPlacement.TOP
+                            is Screen.CredentialDetails -> AdPlacement.BOTTOM
+                            else -> AdPlacement.NONE
                         }
+
+                        val showBottomBar = currentKey in listOf(Screen.Home, Screen.Favorites, Screen.Settings)
 
                         Scaffold(
                             modifier = Modifier.fillMaxSize(),
                             bottomBar = {
-                                if (currentRoute in listOf(Screen.Home.route, Screen.Checkup.route, Screen.Settings.route)) {
-                                    BottomNavigationBar(navController = navController)
+                                if (showBottomBar) {
+                                    BottomNavigationBar(
+                                        navigationState = navigationState,
+                                        navigator = navigator
+                                    )
                                 }
                             }
                         ) { innerPadding ->
@@ -151,7 +146,10 @@ class MainActivity : FragmentActivity() {
 
                                 // Main Content
                                 Box(modifier = Modifier.weight(1f)) {
-                                    AppNavGraph(navController = navController)
+                                    AppNavDisplay(
+                                        navigationState = navigationState,
+                                        navigator = navigator
+                                    )
                                 }
 
                                 if (adPlacement == AdPlacement.BOTTOM || adPlacement == AdPlacement.BOTH) {
@@ -168,7 +166,7 @@ class MainActivity : FragmentActivity() {
     private fun checkForAppUpdate() {
         val appUpdateManager = AppUpdateManagerFactory.create(this)
         val appUpdateInfoTask = appUpdateManager.appUpdateInfo
-        
+
         appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
             if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
                 && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)

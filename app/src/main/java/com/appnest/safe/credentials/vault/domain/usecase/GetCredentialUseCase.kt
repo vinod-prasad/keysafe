@@ -14,4 +14,8 @@ class GetCredentialUseCase(
     fun getAll(): Flow<List<Credential>> {
         return repository.getAllCredentials()
     }
+
+    fun getFavorites(): Flow<List<Credential>> {
+        return repository.getFavoriteCredentials()
+    }
 }

@@ -15,6 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.VisualTransformation
+
 @Composable
 fun CustomTextField(
     value: String,
@@ -23,12 +26,16 @@ fun CustomTextField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     shape: RoundedCornerShape = RoundedCornerShape(8.dp),
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
     onCopy: (() -> Unit)? = null
 ) {
     TextField(
         value = value,
         onValueChange = onValueChange,
         enabled = enabled,
+        keyboardOptions = keyboardOptions,
+        visualTransformation = visualTransformation,
         placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant) },
         modifier = modifier.fillMaxWidth(),
         shape = shape,
