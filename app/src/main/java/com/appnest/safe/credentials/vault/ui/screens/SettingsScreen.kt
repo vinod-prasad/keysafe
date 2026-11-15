@@ -37,7 +37,6 @@ import org.koin.compose.koinInject
 
 @Composable
 fun SettingsScreen(
-    onNavigateToBackup: () -> Unit = {},
     settingsManager: SettingsManager = koinInject(),
     appLockManager: AppLockManager = koinInject()
 ) {
@@ -106,25 +105,6 @@ fun SettingsScreen(
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        // Backup & Restore Vault (.ksvault)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onNavigateToBackup() }
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.title_backup_restore), fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
-                Text("Export encrypted .ksvault or import backup", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Icon(
-                imageVector = Icons.Default.CloudUpload,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))

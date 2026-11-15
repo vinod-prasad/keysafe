@@ -3,6 +3,7 @@ package com.appnest.safe.credentials.vault.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSerializable
@@ -47,6 +48,12 @@ class NavigationState(
     val backStacks: Map<NavKey, NavBackStack<NavKey>>
 ) {
     var topLevelRoute: NavKey by topLevelRoute
+    var navRevision by mutableStateOf(0)
+
+    fun notifyStateChanged() {
+        navRevision++
+    }
+
     val stacksInUse: List<NavKey>
         get() = if (topLevelRoute == startRoute) {
             listOf(startRoute)
@@ -63,11 +70,13 @@ fun NavigationState.toEntries(
         val decorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator<NavKey>()
         )
-        rememberDecoratedNavEntries(
-            backStack = stack,
-            entryDecorators = decorators,
-            entryProvider = entryProvider
-        )
+        key(stack.toList(), navRevision) {
+            rememberDecoratedNavEntries(
+                backStack = stack,
+                entryDecorators = decorators,
+                entryProvider = entryProvider
+            )
+        }
     }
 
     return stacksInUse

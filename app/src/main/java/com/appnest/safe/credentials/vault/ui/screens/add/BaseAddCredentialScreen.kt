@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.ui.base.dialogs.EncryptionKeyPromptDialog
+import com.appnest.safe.credentials.vault.ui.viewmodel.add.AddCredentialEvent
 import com.appnest.safe.credentials.vault.ui.viewmodel.add.AddCredentialUiState
 import com.appnest.safe.credentials.vault.ui.viewmodel.add.BaseAddCredentialViewModel
 
@@ -31,6 +32,19 @@ fun BaseAddCredentialScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     var showSaveDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.eventFlow.collect { event ->
+            when (event) {
+                is AddCredentialEvent.SaveSuccess -> {
+                    onNavigateBack()
+                }
+                is AddCredentialEvent.SaveError -> {
+                    // Handled via uiState.errorMessage
+                }
+            }
+        }
+    }
 
     val pageTitle = if (uiState.isEditMode) stringResource(R.string.title_edit_credential) else stringResource(R.string.title_add_credential)
 

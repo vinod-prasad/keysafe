@@ -21,10 +21,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -110,6 +114,11 @@ fun BackupPayloadScreen(
                             os.write(bytes)
                         }
                         Toast.makeText(context, context.resources.getString(R.string.backup_export_success), Toast.LENGTH_LONG).show()
+                        backupPassword = ""
+                        masterKey = ""
+                        backupPasswordVisible = false
+                        masterKeyVisible = false
+                        viewModel.resetBackupState()
                     } catch (e: Exception) {
                         Toast.makeText(context, e.message ?: "Failed to write file", Toast.LENGTH_SHORT).show()
                     }
@@ -131,11 +140,22 @@ fun BackupPayloadScreen(
         viewModel.loadCredentialsForExport("")
     }
 
-    // Toast status notifications
+    // Toast status notifications & reset on success
     LaunchedEffect(uiState.statusMessage) {
         uiState.statusMessage?.let { msg ->
             Toast.makeText(context, msg.asString(context), Toast.LENGTH_LONG).show()
             viewModel.clearStatusMessage()
+        }
+    }
+
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) {
+            backupPassword = ""
+            masterKey = ""
+            backupPasswordVisible = false
+            masterKeyVisible = false
+            pendingImportUri = null
+            viewModel.resetBackupState()
         }
     }
 
@@ -171,7 +191,7 @@ fun BackupPayloadScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             TabRow(
                 selectedTabIndex = activeTab,
@@ -189,27 +209,38 @@ fun BackupPayloadScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             if (activeTab == 0) {
                 // EXPORT TAB UI
                 ExportTabContent(
                     uiState = uiState,
+                    masterKey = masterKey,
                     backupPassword = backupPassword,
+                    masterKeyVisible = masterKeyVisible,
                     backupPasswordVisible = backupPasswordVisible,
+                    onMasterKeyChanged = {
+                        masterKey = it
+                        viewModel.loadCredentialsForExport(it)
+                    },
                     onBackupPasswordChanged = { backupPassword = it },
+                    onToggleMasterKeyVisibility = { masterKeyVisible = !masterKeyVisible },
                     onTogglePasswordVisibility = { backupPasswordVisible = !backupPasswordVisible },
                     onSetExportMode = { viewModel.setExportMode(it) },
                     onToggleSelectAll = { viewModel.toggleSelectAll(it) },
                     onToggleCredentialSelection = { viewModel.toggleCredentialSelection(it) },
                     onSaveFile = {
+                        if (masterKey.isBlank() || backupPassword.isBlank()) {
+                            Toast.makeText(context, context.resources.getString(R.string.error_both_passwords_required), Toast.LENGTH_SHORT).show()
+                            return@ExportTabContent
+                        }
                         val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
                         val fileName = "keysafe_backup_${timestamp}.ksvault"
                         createDocumentLauncher.launch(fileName)
                     },
                     onShareFile = {
-                        if (backupPassword.isBlank()) {
-                            Toast.makeText(context, context.getString(R.string.error_encryption_key_empty), Toast.LENGTH_SHORT).show()
+                        if (masterKey.isBlank() || backupPassword.isBlank()) {
+                            Toast.makeText(context, context.resources.getString(R.string.error_both_passwords_required), Toast.LENGTH_SHORT).show()
                             return@ExportTabContent
                         }
                         scope.launch {
@@ -231,7 +262,12 @@ fun BackupPayloadScreen(
                                         putExtra(Intent.EXTRA_STREAM, contentUri)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.backup_share)))
+                                    context.startActivity(Intent.createChooser(shareIntent, context.resources.getString(R.string.backup_share)))
+                                    backupPassword = ""
+                                    masterKey = ""
+                                    backupPasswordVisible = false
+                                    masterKeyVisible = false
+                                    viewModel.resetBackupState()
                                 } catch (e: Exception) {
                                     Toast.makeText(context, e.message ?: "Failed to share file", Toast.LENGTH_SHORT).show()
                                 }
@@ -280,9 +316,13 @@ fun BackupPayloadScreen(
 @Composable
 fun ExportTabContent(
     uiState: BackupUiState,
+    masterKey: String,
     backupPassword: String,
+    masterKeyVisible: Boolean,
     backupPasswordVisible: Boolean,
+    onMasterKeyChanged: (String) -> Unit,
     onBackupPasswordChanged: (String) -> Unit,
+    onToggleMasterKeyVisibility: () -> Unit,
     onTogglePasswordVisibility: () -> Unit,
     onSetExportMode: (String) -> Unit,
     onToggleSelectAll: (Boolean) -> Unit,
@@ -290,45 +330,93 @@ fun ExportTabContent(
     onSaveFile: () -> Unit,
     onShareFile: () -> Unit
 ) {
+    val isSpecificMode = uiState.exportMode == "SELECTED"
+
     Card(
         modifier = Modifier.fillMaxSize(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(stringResource(R.string.backup_export_mode_title), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text(stringResource(R.string.backup_export_mode_title), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = uiState.exportMode == "ALL",
-                    onClick = { onSetExportMode("ALL") }
-                )
-                Text(stringResource(R.string.backup_export_all), fontSize = 14.sp)
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSetExportMode("ALL") }
+                        .padding(vertical = 2.dp)
+                ) {
+                    RadioButton(
+                        selected = uiState.exportMode == "ALL",
+                        onClick = { onSetExportMode("ALL") }
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(stringResource(R.string.backup_export_all), fontSize = 13.sp)
+                }
 
-                Spacer(modifier = Modifier.width(16.dp))
-
-                RadioButton(
-                    selected = uiState.exportMode == "SELECTED",
-                    onClick = { onSetExportMode("SELECTED") }
-                )
-                Text(stringResource(R.string.backup_export_selected), fontSize = 14.sp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSetExportMode("SELECTED") }
+                        .padding(vertical = 2.dp)
+                ) {
+                    RadioButton(
+                        selected = uiState.exportMode == "SELECTED",
+                        onClick = { onSetExportMode("SELECTED") }
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(stringResource(R.string.backup_export_selected), fontSize = 13.sp)
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Backup Encryption Password
+            // 1. Vault Master Key to read local DB
+            OutlinedTextField(
+                value = masterKey,
+                onValueChange = onMasterKeyChanged,
+                label = { Text(stringResource(R.string.backup_master_key_label)) },
+                placeholder = { Text(stringResource(R.string.backup_master_key_export_hint)) },
+                visualTransformation = if (masterKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                leadingIcon = {
+                    Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                },
+                trailingIcon = {
+                    IconButton(onClick = onToggleMasterKeyVisibility) {
+                        Icon(if (masterKeyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 2. Backup Encryption Password to encrypt .ksvault file
             OutlinedTextField(
                 value = backupPassword,
                 onValueChange = onBackupPasswordChanged,
                 label = { Text(stringResource(R.string.backup_password_label)) },
                 placeholder = { Text(stringResource(R.string.backup_password_hint)) },
                 visualTransformation = if (backupPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                },
                 trailingIcon = {
                     IconButton(onClick = onTogglePasswordVisibility) {
                         Icon(if (backupPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
                     }
                 },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -339,28 +427,36 @@ fun ExportTabContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val selectedCount = uiState.exportCredentialsList.count { it.isSelected }
+                val selectedCount = if (isSpecificMode) uiState.exportCredentialsList.count { it.isSelected } else uiState.exportCredentialsList.size
                 Text(
                     text = "Items ($selectedCount selected)",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isSpecificMode) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
                 Row {
-                    TextButton(onClick = { onToggleSelectAll(true) }) {
+                    TextButton(
+                        onClick = { onToggleSelectAll(true) },
+                        enabled = isSpecificMode
+                    ) {
                         Text(stringResource(R.string.backup_select_all), fontSize = 12.sp)
                     }
-                    TextButton(onClick = { onToggleSelectAll(false) }) {
+                    TextButton(
+                        onClick = { onToggleSelectAll(false) },
+                        enabled = isSpecificMode
+                    ) {
                         Text(stringResource(R.string.backup_deselect_all), fontSize = 12.sp)
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.height(4.dp))
+
             if (uiState.exportCredentialsList.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .padding(vertical = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -370,18 +466,19 @@ fun ExportTabContent(
                     )
                 }
             } else {
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(uiState.exportCredentialsList) { item ->
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    uiState.exportCredentialsList.forEach { item ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onToggleCredentialSelection(item.credential.id) }
-                                .padding(vertical = 8.dp),
+                                .clickable(enabled = isSpecificMode) { onToggleCredentialSelection(item.credential.id) }
+                                .padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Checkbox(
-                                checked = item.isSelected,
-                                onCheckedChange = { onToggleCredentialSelection(item.credential.id) }
+                                checked = if (isSpecificMode) item.isSelected else true,
+                                onCheckedChange = { onToggleCredentialSelection(item.credential.id) },
+                                enabled = isSpecificMode
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             CategoryOrDomainLogo(category = item.credential.category, nameOrDomain = item.credential.siteOrApp)
@@ -397,31 +494,40 @@ fun ExportTabContent(
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
                     onClick = onSaveFile,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.CloudUpload, contentDescription = null)
+                    Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(stringResource(R.string.backup_save_device), fontSize = 13.sp)
+                    Text(stringResource(R.string.backup_save_device), fontSize = 12.sp, maxLines = 1)
                 }
 
                 Button(
                     onClick = onShareFile,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(stringResource(R.string.backup_share), color = MaterialTheme.colorScheme.onSecondaryContainer, fontSize = 13.sp)
+                    Text(stringResource(R.string.backup_share), color = MaterialTheme.colorScheme.onSecondaryContainer, fontSize = 12.sp, maxLines = 1)
                 }
             }
+
+            // Extra bottom spacer so action buttons scroll completely clear of the Ad Banner!
+            Spacer(modifier = Modifier.height(64.dp))
         }
     }
 }
@@ -447,10 +553,15 @@ fun ImportTabContent(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
             Button(
                 onClick = onSelectFile,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -458,14 +569,15 @@ fun ImportTabContent(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = selectedUri?.lastPathSegment ?: stringResource(R.string.backup_select_file),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 1
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            Text(stringResource(R.string.backup_import_strategy_title), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
+            Text(stringResource(R.string.backup_import_strategy_title), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
 
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -474,12 +586,12 @@ fun ImportTabContent(
                         onClick = { onSetImportStrategy("MERGE") }
                     )
                     Column {
-                        Text(stringResource(R.string.backup_import_merge), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.backup_import_merge), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         Text(stringResource(R.string.backup_import_merge_desc), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(
@@ -487,13 +599,13 @@ fun ImportTabContent(
                         onClick = { onSetImportStrategy("OVERRIDE") }
                     )
                     Column {
-                        Text(stringResource(R.string.backup_import_override), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.backup_import_override), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error)
                         Text(stringResource(R.string.backup_import_override_desc), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Backup Decryption Password
             OutlinedTextField(
@@ -502,37 +614,45 @@ fun ImportTabContent(
                 label = { Text(stringResource(R.string.backup_password_label)) },
                 placeholder = { Text(stringResource(R.string.backup_password_hint)) },
                 visualTransformation = if (backupPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                },
                 trailingIcon = {
                     IconButton(onClick = onToggleBackupPasswordVisibility) {
                         Icon(if (backupPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
                     }
                 },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Master Encryption Key to encrypt imported items into DB
             OutlinedTextField(
                 value = masterKey,
                 onValueChange = onMasterKeyChanged,
                 label = { Text(stringResource(R.string.backup_master_key_label)) },
-                placeholder = { Text(stringResource(R.string.backup_master_key_hint)) },
+                placeholder = { Text(stringResource(R.string.backup_master_key_import_hint)) },
                 visualTransformation = if (masterKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                leadingIcon = {
+                    Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                },
                 trailingIcon = {
                     IconButton(onClick = onToggleMasterKeyVisibility) {
                         Icon(if (masterKeyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
                     }
                 },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = onImportAction,
                 enabled = selectedUri != null && backupPassword.isNotBlank() && masterKey.isNotBlank() && !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 if (uiState.isLoading) {
@@ -541,6 +661,9 @@ fun ImportTabContent(
                     Text(stringResource(R.string.backup_import_action))
                 }
             }
+
+            // Extra bottom spacer so button scrolls completely clear of the Ad Banner!
+            Spacer(modifier = Modifier.height(64.dp))
         }
     }
 }

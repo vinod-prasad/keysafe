@@ -25,14 +25,15 @@ fun AppNavDisplay(
                 FavoriteScreen(navigator = navigator)
             }
             entry<Screen.Settings> {
-                SettingsScreen(
-                    onNavigateToBackup = { navigator.navigate(Screen.BackupPayload) }
-                )
+                SettingsScreen()
             }
             entry<Screen.BackupPayload> {
                 com.appnest.safe.credentials.vault.ui.screens.BackupPayloadScreen(
                     onNavigateBack = { navigator.goBack() }
                 )
+            }
+            entry<Screen.HelpSupport> {
+                com.appnest.safe.credentials.vault.ui.screens.HelpSupportScreen()
             }
             entry<Screen.AddCredential> { key ->
                 when (key.category?.lowercase()) {

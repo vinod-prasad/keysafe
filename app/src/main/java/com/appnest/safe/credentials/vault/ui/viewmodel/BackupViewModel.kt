@@ -80,9 +80,9 @@ class BackupViewModel(
     }
 
     fun setExportMode(mode: String) {
-        val shouldSelectAll = (mode == "ALL")
+        val isAll = (mode == "ALL")
         val updated = _uiState.value.exportCredentialsList.map {
-            if (shouldSelectAll) it.copy(isSelected = true) else it
+            it.copy(isSelected = isAll)
         }
         _uiState.value = _uiState.value.copy(exportMode = mode, exportCredentialsList = updated)
     }
@@ -197,5 +197,16 @@ class BackupViewModel(
 
     fun clearStatusMessage() {
         _uiState.value = _uiState.value.copy(statusMessage = null, isSuccess = false)
+    }
+
+    fun resetBackupState() {
+        val allSelectedList = _uiState.value.exportCredentialsList.map { it.copy(isSelected = true) }
+        _uiState.value = _uiState.value.copy(
+            exportMode = "ALL",
+            importStrategy = "MERGE",
+            exportCredentialsList = allSelectedList,
+            statusMessage = null,
+            isSuccess = false
+        )
     }
 }

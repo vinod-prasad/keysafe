@@ -18,7 +18,9 @@ fun BottomNavigationBar(
     val items = listOf(
         BottomNavItem.Accounts,
         BottomNavItem.Favorites,
-        BottomNavItem.Settings
+        BottomNavItem.Backup,
+        BottomNavItem.Settings,
+        BottomNavItem.Support
     )
 
     NavigationBar {

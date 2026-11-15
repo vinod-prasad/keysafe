@@ -9,6 +9,7 @@ class Navigator(val state: NavigationState) {
         } else {
             state.backStacks[state.topLevelRoute]?.add(route)
         }
+        state.notifyStateChanged()
     }
 
     fun goBack() {
@@ -21,5 +22,6 @@ class Navigator(val state: NavigationState) {
         } else {
             currentStack.removeLastOrNull()
         }
+        state.notifyStateChanged()
     }
 }

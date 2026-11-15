@@ -9,6 +9,7 @@ import com.appnest.safe.credentials.vault.domain.usecase.DecryptCredentialUseCas
 import com.appnest.safe.credentials.vault.domain.usecase.GetCredentialUseCase
 import com.appnest.safe.credentials.vault.domain.usecase.SaveCredentialUseCase
 import com.appnest.safe.credentials.vault.utils.UiText
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,7 @@ abstract class BaseAddCredentialViewModel(
     protected val _uiState = MutableStateFlow(AddCredentialUiState(category = initialCategory))
     val uiState: StateFlow<AddCredentialUiState> = _uiState
 
-    protected val _eventChannel = Channel<AddCredentialEvent>()
+    protected val _eventChannel = Channel<AddCredentialEvent>(Channel.BUFFERED)
     val eventFlow: Flow<AddCredentialEvent> = _eventChannel.receiveAsFlow()
 
     open fun resetState(credentialId: String? = null) {
@@ -161,17 +162,18 @@ abstract class BaseAddCredentialViewModel(
             return
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = state.copy(isLoading = true)
 
             try {
                 val credential = createCredential(encryptionKey)
                 val result = saveCredentialUseCase(credential, encryptionKey)
+                _uiState.value = _uiState.value.copy(isLoading = false)
                 if (result.isSuccess) {
                     _eventChannel.send(AddCredentialEvent.SaveSuccess)
                 } else {
                     val msg = result.exceptionOrNull()?.message ?: "Unknown error saving credential"
-                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = UiText.DynamicString(msg))
+                    _uiState.value = _uiState.value.copy(errorMessage = UiText.DynamicString(msg))
                     _eventChannel.send(AddCredentialEvent.SaveError(msg))
                 }
             } catch (e: Exception) {

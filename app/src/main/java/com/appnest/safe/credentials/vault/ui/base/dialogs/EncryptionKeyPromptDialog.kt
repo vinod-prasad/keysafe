@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -36,13 +37,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.material.icons.filled.Key
 import com.appnest.safe.credentials.vault.R
 import androidx.compose.ui.window.Dialog
 
 @Composable
 fun EncryptionKeyPromptDialog(
-    title: String = "Enter Encryption Key",
-    subtitle: String = "Enter your secret key/PIN to proceed. This key is never stored locally.",
+    title: String = "Vault Master Key Required",
+    subtitle: String = "Enter your secret Vault Master Key to proceed. This key is processed in memory and never saved locally.",
     confirmButtonText: String = "Confirm",
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
@@ -61,6 +63,12 @@ fun EncryptionKeyPromptDialog(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Icon(
+                    imageVector = Icons.Default.Key,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp).padding(bottom = 4.dp)
+                )
                 Text(
                     text = title,
                     fontSize = 18.sp,
@@ -82,10 +90,14 @@ fun EncryptionKeyPromptDialog(
                         keyInput = it
                         isError = false
                     },
-                    label = { Text(stringResource(R.string.label_vault_pin)) },
+                    label = { Text(stringResource(R.string.label_master_key)) },
+                    placeholder = { Text(stringResource(R.string.hint_master_key)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    leadingIcon = {
+                        Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    },
                     trailingIcon = {
                         IconButton(onClick = { keyVisible = !keyVisible }) {
                             val icon = if (keyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility

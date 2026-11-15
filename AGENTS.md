@@ -14,14 +14,104 @@ KeySafe is a secure Android credential vault application built with Kotlin and J
   - Encryption keys are **never** saved locally. 
   - Sensitive vault data stored in local SQLite database is encrypted on-the-fly using military-grade **AES-256-GCM + PBKDF2-HMAC-SHA256** key derivation with unique random Salt & IV per entry via `AESDataTransformer` (with automatic fallback support for legacy AES-CBC entries).
   - Whenever encryption or decryption is needed, the app prompts the user via a UI popup to enter their key/PIN to process it on the fly.
+- **Key & PIN Terminology & Length Criteria Standard**:
+  - **Vault Master Key** (`Icons.Default.Key`): Min 1 char (8+ recommended). Processed strictly in memory to encrypt/decrypt database entries and `.ksvault` payloads on-the-fly. NEVER saved locally.
+  - **App Unlock PIN** (`Icons.Default.Lock` / `Icons.Default.Fingerprint`): 4 to 8 numeric digits. Optional local PIN used to unlock the app UI on launch or idle timeout.
+  - **Backup File Password** (`Icons.Default.Lock`): Min 1 char (8+ recommended). Password set during export to encrypt the `.ksvault` binary backup container.
+  - **Item Security PIN** (`label_item_pin`): Optional PIN value stored inside a credential record (e.g. 4-digit ATM card PIN or system login PIN).
 - **Offline Favicon Caching**: Domain favicons are fetched via Google Favicon API and aggressively cached offline using a custom Coil `ImageLoaderFactory` (`KeySafeApp.kt` & `ImageLoaderUtils.kt`).
-- **Encrypted Vault Backup & Restore (`.ksvault`)**:
-  - File Format: Recommended `.ksvault` binary format protected with AES-256-GCM encryption + PBKDF2-HMAC-SHA256 (100,000 iterations) key derivation and authentication tag verification.
-  - File Naming Convention: Postfixed with date timestamp `yyyy-MM-dd_HH-mm-ss` (e.g., `keysafe_backup_2026-03-30_14-30-45.ksvault`).
-  - Export Channels: Supports local file saving (`CreateDocument`) and cross-app sharing (`Intent.ACTION_SEND` to WhatsApp, Gmail, Drive).
-  - Export Options: Export all vault items or user-selected specific credentials.
-  - Import Strategies: Support for `Merge` (adds new/updated items into vault) and `Override` (clears vault and replaces completely from backup file).
-- **Centralized Monetization (MainActivity)**: `MainActivity` tracks navigation destination changes to show global AdBanners at the **BOTTOM** (dashboard/lists) or **TOP** (form screens when soft keyboard is active).
+---
+
+## Visual Encryption & Backup/Restore Flow
+
+![KeySafe Backup & Import Architecture Diagram](design_assets/backup_export_import_flow.svg)
+
+### 1. Data Creation & Local Database Encryption Flow
+When a user creates or edits a credential, sensitive fields (username, password, PIN, note, card numbers, security answers) are transformed before being written to SQLite DB.
+
+```mermaid
+flowchart TD
+    User([User Enters Plain Details]) --> PromptKey[User Promoted for Vault Master Key/PIN]
+    PromptKey --> Transformer[AESDataTransformer]
+    Transformer -->|PBKDF2-HMAC-SHA256 Key Derivation| DeriveKey[256-bit AES Key]
+    Transformer -->|Generate Unique Random Salt 16B & IV 12B| Cipher[AES-256-GCM Encrypt]
+    DeriveKey --> Cipher
+    Cipher --> Pack[Pack: Salt 16B + IV 12B + Ciphertext]
+    Pack --> Base64[Base64 Encoding]
+    Base64 --> SQLite[(Local SQLite DB)]
+```
+
+---
+
+### 2. Export Backup Flow (`.ksvault`)
+
+The export flow decrypts local DB records on-the-fly and packages them into an authenticated, encrypted binary container (`.ksvault`).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Export UI (BackupPayloadScreen)
+    participant Repo as CredentialRepository
+    participant DB as SQLite DB
+    participant Manager as VaultBackupManager
+
+    User->>UI: Selects Credentials & Enters Backup Password
+    UI->>Repo: Fetch raw database entries
+    Repo->>DB: Query encrypted rows
+    DB-->>Repo: Return encrypted Base64
+    Repo-->>UI: Decrypt fields using Vault Master Key
+    UI->>Manager: Create BackupPayload DTO & Encrypt
+    Note over Manager: PBKDF2 Key Derivation (100k iterations)<br/>+ Random Salt (16B) & IV (12B)<br/>+ AES-256-GCM Encryption
+    Manager-->>UI: Binary Payload (.ksvault)
+    UI->>User: Export to File / Share (WhatsApp, Email, Drive)
+```
+
+#### Export Key Criteria & Mechanics:
+- **Vault Master Key**: Used on-the-fly to read & decrypt existing records stored in local SQLite DB.
+- **Backup Key / Password**:
+  - **Purpose**: Secures the exported `.ksvault` binary file so it can be safely transmitted over untrusted channels (WhatsApp, Email, Drive).
+  - **Criteria**: Mandatory non-empty password set by the user specifically for this backup file.
+  - **How it works**: `VaultBackupManager` derives a 256-bit key from the Backup Password using PBKDF2-HMAC-SHA256 (100,000 iterations) with a new random 16-byte salt and 12-byte IV, encrypting the serialized `BackupPayload` JSON into a `.ksvault` container.
+
+---
+
+### 3. Import & Restore Flow
+
+The import flow decrypts the `.ksvault` file using the Backup Password and re-encrypts the credentials into the local SQLite DB using the Vault Master Key.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Import UI
+    participant Manager as VaultBackupManager
+    participant Repo as CredentialRepository
+    participant DB as SQLite DB
+
+    User->>UI: Selects .ksvault File, Backup Password & Master Key
+    UI->>Manager: Read File Bytes & Decrypt with Backup Password
+    Note over Manager: GCM Tag Verification & Decryption<br/>(Validates Backup Password)
+    Manager-->>UI: Return BackupPayload DTO
+    alt Import Strategy is OVERRIDE
+        UI->>Repo: deleteAllCredentials()
+        Repo->>DB: Clear SQL Tables
+    else Import Strategy is MERGE
+        Note over UI: Preserve existing vault records
+    end
+    UI->>Repo: Save each credential with Master Key
+    Note over Repo: AESDataTransformer<br/>Encrypts items with Master Key
+    Repo->>DB: Insert encrypted rows into SQLite DB
+    UI-->>User: Show Import Success Notification
+```
+
+#### Import Key Criteria & Mechanics:
+- **Backup Password**:
+  - **Purpose**: Unlocks and decrypts the `.ksvault` binary container.
+  - **Criteria**: Must match the exact password used when exporting the backup. If incorrect, GCM authentication tag verification fails and blocks import (`"Invalid Backup Password or corrupted file"`).
+- **Vault Master Key**:
+  - **Purpose**: Encrypts the restored credentials into local SQLite DB storage.
+  - **Criteria**: Mandatory non-empty string. Ensures imported records are securely stored in local DB using the app's standard AES-256-GCM + PBKDF2 transformer.
 
 ---
 
@@ -61,7 +151,8 @@ To prevent monolithic God classes, the credential creation/editing flow is segre
 - When App Lock is enabled and locked, `MainActivity` intercepts navigation to present `AuthScreen` (Biometric prompt) or `PinAuthScreen` (Custom PIN pad).
 - Idle lock timeouts (Immediately, 1m, 5m, 10m, 15m, 30m) are tracked via `AppLockManager` attached to `ProcessLifecycleOwner`.
 
-### 3. Category Selection & Navigation Flow
+### 3. Navigation & Bottom Bar Flow
+- **Bottom Navigation Bar**: Provides instant access to five top-level destinations: **Accounts**, **Favorites**, **Backup** (`.ksvault` export/import), **Support** (FAQs & Customer Email Assistance), and **Settings**.
 - **Home Screen Category Chips** (`All`, `Site`, `Card`, `Computer`):
   - Selecting a category chip filters the credential list.
   - Tapping **"Add credential"** while a specific category chip (`Site`, `Card`, `Computer`) is active routes **directly** to that category's form (`AddSiteScreen`, `AddCardScreen`, or `AddComputerScreen`).
@@ -86,10 +177,11 @@ Mandatory fields are visually indicated with a red asterisk (`*`):
   - Validates month `MM` range (`01` to `12`).
   - Ensures `Start (MM/YY) < Expiry (MM/YY)` (expiry date must be after start date).
 
-### 3. Collapsible Optional Form Sections
-- **Note** and **Security Questions** are optional and **hidden by default** when adding a new credential.
-- Tapping `"+ Add Note"` or `"+ Add Security Question"` expands the respective section on demand.
-- When editing an existing credential that contains a note or security questions, the sections render expanded automatically.
+### 3. Collapsible Optional Form Sections ("Add more info")
+- **Item Security PIN**, **Note**, and **Security Questions** are optional and **hidden by default** when adding a new credential.
+- An **"Add more info ˅"** clickable header toggles showing/hiding the optional pill chips (`[🔑 Item Security PIN]`, `[📝 Note]`, `[❓ Security Questions]`). The chips are hidden by default.
+- Tapping any pill chip expands that optional field on demand. Expanded fields include a Close (`X`) action to collapse and clear the field.
+- When editing an existing credential that contains a PIN, note, or security questions, those sections render expanded automatically.
 - **Hidden Select App Feature**: The "Select app" button in `SiteTemplateForm` is hidden/commented out for future releases.
 
 ### 4. Delete Confirmation

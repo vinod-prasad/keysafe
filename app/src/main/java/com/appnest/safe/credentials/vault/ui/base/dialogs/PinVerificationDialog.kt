@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -33,6 +34,10 @@ import androidx.compose.ui.res.stringResource
 import com.appnest.safe.credentials.vault.R
 import androidx.compose.ui.window.Dialog
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Key
+
 @Composable
 fun PinVerificationDialog(
     onSuccess: () -> Unit,
@@ -51,6 +56,12 @@ fun PinVerificationDialog(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Icon(
+                    imageVector = Icons.Default.Key,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp).padding(bottom = 4.dp)
+                )
                 Text(
                     text = stringResource(R.string.dialog_verify_pin_title),
                     fontSize = 18.sp,
@@ -69,13 +80,17 @@ fun PinVerificationDialog(
                 OutlinedTextField(
                     value = enteredPin,
                     onValueChange = {
-                        if (it.length <= 8) enteredPin = it
+                        enteredPin = it
                         isError = false
                     },
-                    label = { Text(stringResource(R.string.label_vault_pin)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    label = { Text(stringResource(R.string.label_master_key)) },
+                    placeholder = { Text(stringResource(R.string.hint_master_key)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
+                    leadingIcon = {
+                        Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    },
                     isError = isError,
                     modifier = Modifier.fillMaxWidth()
                 )

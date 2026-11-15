@@ -1,0 +1,181 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 950" width="1200" height="950" style="background-color: #12131A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E07A5F" />
+      <stop offset="100%" stop-color="#D1495B" />
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#81B29A" />
+      <stop offset="100%" stop-color="#2A9D8F" />
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F4A261" />
+      <stop offset="100%" stop-color="#E76F51" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E1F2B" />
+      <stop offset="100%" stop-color="#171822" />
+    </linearGradient>
+
+    <!-- Markers -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#E07A5F" />
+    </marker>
+    <marker id="arrowTeal" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#81B29A" />
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#F4A261" />
+    </marker>
+  </defs>
+
+  <!-- TITLE HEADER -->
+  <rect x="30" y="25" width="1140" height="70" rx="16" fill="url(#cardGrad)" stroke="#2D2E3F" stroke-width="1.5" />
+  <text x="60" y="68" font-size="24" font-weight="bold" fill="#F4F1DE">KeySafe - Vault Encryption, Backup (.ksvault) &amp; Restore Architecture</text>
+  <text x="980" y="68" font-size="14" font-weight="bold" fill="#E07A5F">AES-256-GCM + PBKDF2</text>
+
+  <!-- SECTION 1: DATA CREATION & LOCAL DB ENCRYPTION -->
+  <g transform="translate(30, 115)">
+    <rect x="0" y="0" width="1140" height="220" rx="16" fill="url(#cardGrad)" stroke="#2D2E3F" stroke-width="1.5" />
+    <text x="25" y="35" font-size="16" font-weight="bold" fill="#E07A5F">1. LOCAL DATABASE STORAGE ENCRYPTION FLOW</text>
+
+    <!-- Node A1: User Input -->
+    <rect x="30" y="60" width="210" height="125" rx="12" fill="#252636" stroke="#3D3E53" stroke-width="1" />
+    <text x="45" y="90" font-size="14" font-weight="bold" fill="#F4F1DE">Credential Input</text>
+    <text x="45" y="115" font-size="12" fill="#A0A0B0">• Title / Domain Name</text>
+    <text x="45" y="135" font-size="12" fill="#A0A0B0">• Username &amp; Password</text>
+    <text x="45" y="155" font-size="12" fill="#A0A0B0">• Card/Computer Details</text>
+
+    <!-- Arrow 1 -->
+    <path d="M 240 122 L 290 122" stroke="#E07A5F" stroke-width="2" marker-end="url(#arrow)" fill="none" />
+
+    <!-- Node A2: Master Key Prompt -->
+    <rect x="300" y="60" width="210" height="125" rx="12" fill="#252636" stroke="#3D3E53" stroke-width="1" />
+    <text x="315" y="90" font-size="14" font-weight="bold" fill="#F4F1DE">Vault Master Key</text>
+    <text x="315" y="115" font-size="12" fill="#E07A5F">• Prompted on-the-fly</text>
+    <text x="315" y="135" font-size="12" fill="#A0A0B0">• Never saved locally</text>
+    <text x="315" y="155" font-size="12" fill="#A0A0B0">• Passed directly to Transformer</text>
+
+    <!-- Arrow 2 -->
+    <path d="M 510 122 L 560 122" stroke="#E07A5F" stroke-width="2" marker-end="url(#arrow)" fill="none" />
+
+    <!-- Node A3: AESDataTransformer -->
+    <rect x="570" y="60" width="240" height="125" rx="12" fill="#2A232E" stroke="#E07A5F" stroke-width="1.5" />
+    <text x="585" y="88" font-size="14" font-weight="bold" fill="#E07A5F">AESDataTransformer</text>
+    <text x="585" y="112" font-size="12" fill="#F4F1DE">• PBKDF2 Key Derivation</text>
+    <text x="585" y="132" font-size="12" fill="#A0A0B0">• Unique Random Salt (16B)</text>
+    <text x="585" y="152" font-size="12" fill="#A0A0B0">• Unique Random IV (12B)</text>
+    <text x="585" y="172" font-size="12" fill="#81B29A">• AES-256-GCM Ciphertext</text>
+
+    <!-- Arrow 3 -->
+    <path d="M 810 122 L 860 122" stroke="#E07A5F" stroke-width="2" marker-end="url(#arrow)" fill="none" />
+
+    <!-- Node A4: Local SQLite DB -->
+    <rect x="870" y="60" width="240" height="125" rx="12" fill="#252636" stroke="#81B29A" stroke-width="1.5" />
+    <text x="885" y="90" font-size="14" font-weight="bold" fill="#81B29A">Local SQLite Database</text>
+    <text x="885" y="115" font-size="12" fill="#F4F1DE">• Encrypted Base64 Payload</text>
+    <text x="885" y="135" font-size="12" fill="#A0A0B0">• Salt + IV + GCM Auth Tag</text>
+    <text x="885" y="155" font-size="12" fill="#A0A0B0">• Stored in app internal storage</text>
+  </g>
+
+  <!-- SECTION 2: EXPORT BACKUP FLOW -->
+  <g transform="translate(30, 355)">
+    <rect x="0" y="0" width="1140" height="270" rx="16" fill="url(#cardGrad)" stroke="#2D2E3F" stroke-width="1.5" />
+    <text x="25" y="35" font-size="16" font-weight="bold" fill="#81B29A">2. EXPORT ENCRYPTED BACKUP FLOW (.ksvault)</text>
+
+    <!-- Node B1: Selection -->
+    <rect x="30" y="60" width="220" height="180" rx="12" fill="#252636" stroke="#3D3E53" stroke-width="1" />
+    <text x="45" y="90" font-size="14" font-weight="bold" fill="#F4F1DE">Export Scope</text>
+    <text x="45" y="115" font-size="12" fill="#81B29A">• Export All Credentials</text>
+    <text x="45" y="135" font-size="12" fill="#81B29A">• Select Specific Items</text>
+    <text x="45" y="160" font-size="12" fill="#A0A0B0">User selects credentials</text>
+    <text x="45" y="180" font-size="12" fill="#A0A0B0">from interactive checkboxes</text>
+
+    <!-- Arrow B1 -->
+    <path d="M 250 150 L 290 150" stroke="#81B29A" stroke-width="2" marker-end="url(#arrowTeal)" fill="none" />
+
+    <!-- Node B2: Decrypt with Vault Master Key -->
+    <rect x="300" y="60" width="230" height="180" rx="12" fill="#252636" stroke="#3D3E53" stroke-width="1" />
+    <text x="315" y="90" font-size="14" font-weight="bold" fill="#F4F1DE">On-the-fly Decryption</text>
+    <text x="315" y="115" font-size="12" fill="#E07A5F">Vault Master Key (Same as #1):</text>
+    <text x="315" y="135" font-size="12" fill="#A0A0B0">• Decrypts raw DB entries</text>
+    <text x="315" y="155" font-size="12" fill="#A0A0B0">• Serializes clean items to</text>
+    <text x="315" y="175" font-size="12" fill="#81B29A">• BackupPayload JSON DTO</text>
+
+    <!-- Arrow B2 -->
+    <path d="M 530 150 L 570 150" stroke="#81B29A" stroke-width="2" marker-end="url(#arrowTeal)" fill="none" />
+
+    <!-- Node B3: VaultBackupManager Encrypt -->
+    <rect x="580" y="60" width="250" height="180" rx="12" fill="#1E2C28" stroke="#81B29A" stroke-width="1.5" />
+    <text x="595" y="88" font-size="14" font-weight="bold" fill="#81B29A">VaultBackupManager</text>
+    <text x="595" y="112" font-size="12" fill="#F4F1DE">Backup Password (File Key):</text>
+    <text x="595" y="132" font-size="12" fill="#A0A0B0">• Mandatory password for file</text>
+    <text x="595" y="152" font-size="12" fill="#A0A0B0">• PBKDF2 (100k iterations)</text>
+    <text x="595" y="172" font-size="12" fill="#A0A0B0">• AES-256-GCM Container</text>
+    <text x="595" y="192" font-size="12" fill="#F4A261">• Magic Header 'KSVAULT1'</text>
+
+    <!-- Arrow B3 -->
+    <path d="M 830 150 L 870 150" stroke="#81B29A" stroke-width="2" marker-end="url(#arrowTeal)" fill="none" />
+
+    <!-- Node B4: Export Target -->
+    <rect x="880" y="60" width="230" height="180" rx="12" fill="#252636" stroke="#81B29A" stroke-width="1.5" />
+    <text x="895" y="88" font-size="14" font-weight="bold" fill="#81B29A">Output .ksvault File</text>
+    <text x="895" y="110" font-size="11" fill="#F4A261">keysafe_backup_YYYY-MM-DD_HH-mm-ss.ksvault</text>
+    <text x="895" y="135" font-size="12" fill="#F4F1DE">Export Channels:</text>
+    <text x="895" y="155" font-size="12" fill="#A0A0B0">• Save to Local Storage</text>
+    <text x="895" y="175" font-size="12" fill="#A0A0B0">• Share via WhatsApp</text>
+    <text x="895" y="195" font-size="12" fill="#A0A0B0">• Share via Gmail / Drive</text>
+  </g>
+
+  <!-- SECTION 3: IMPORT RESTORE FLOW -->
+  <g transform="translate(30, 645)">
+    <rect x="0" y="0" width="1140" height="280" rx="16" fill="url(#cardGrad)" stroke="#2D2E3F" stroke-width="1.5" />
+    <text x="25" y="35" font-size="16" font-weight="bold" fill="#F4A261">3. IMPORT &amp; RESTORE VAULT FLOW</text>
+
+    <!-- Node C1: Input File -->
+    <rect x="30" y="60" width="210" height="195" rx="12" fill="#252636" stroke="#3D3E53" stroke-width="1" />
+    <text x="45" y="90" font-size="14" font-weight="bold" fill="#F4F1DE">Select Backup File</text>
+    <text x="45" y="115" font-size="12" fill="#F4A261">• Pick .ksvault file</text>
+    <text x="45" y="135" font-size="12" fill="#A0A0B0">• Via Document Picker</text>
+    <text x="45" y="160" font-size="12" fill="#F4F1DE">Import Strategy:</text>
+    <text x="45" y="180" font-size="12" fill="#81B29A">• MERGE (Add/Update)</text>
+    <text x="45" y="200" font-size="12" fill="#E76F51">• OVERRIDE (Clear DB)</text>
+
+    <!-- Arrow C1 -->
+    <path d="M 240 157 L 280 157" stroke="#F4A261" stroke-width="2" marker-end="url(#arrowAmber)" fill="none" />
+
+    <!-- Node C2: Decrypt File -->
+    <rect x="290" y="60" width="250" height="195" rx="12" fill="#2E2721" stroke="#F4A261" stroke-width="1.5" />
+    <text x="305" y="88" font-size="14" font-weight="bold" fill="#F4A261">Decrypt Backup Payload</text>
+    <text x="305" y="112" font-size="12" fill="#F4F1DE">Backup Password (File Key):</text>
+    <text x="305" y="132" font-size="12" fill="#A0A0B0">• Must match Export password</text>
+    <text x="305" y="152" font-size="12" fill="#A0A0B0">• Verifies GCM Auth Tag</text>
+    <text x="305" y="172" font-size="12" fill="#E76F51">• Fails if password wrong</text>
+    <text x="305" y="192" font-size="12" fill="#81B29A">• Obtains BackupPayload DTO</text>
+
+    <!-- Arrow C2 -->
+    <path d="M 540 157 L 580 157" stroke="#F4A261" stroke-width="2" marker-end="url(#arrowAmber)" fill="none" />
+
+    <!-- Node C3: Strategy Execution -->
+    <rect x="590" y="60" width="230" height="195" rx="12" fill="#252636" stroke="#3D3E53" stroke-width="1" />
+    <text x="605" y="88" font-size="14" font-weight="bold" fill="#F4F1DE">Apply Strategy</text>
+    <text x="605" y="112" font-size="12" fill="#81B29A">MERGE Strategy:</text>
+    <text x="605" y="132" font-size="12" fill="#A0A0B0">• Preserves existing records</text>
+    <text x="605" y="157" font-size="12" fill="#E76F51">OVERRIDE Strategy:</text>
+    <text x="605" y="177" font-size="12" fill="#A0A0B0">• Wipes SQLite tables clean</text>
+    <text x="605" y="197" font-size="12" fill="#A0A0B0">• Prepares fresh restore</text>
+
+    <!-- Arrow C3 -->
+    <path d="M 820 157 L 860 157" stroke="#F4A261" stroke-width="2" marker-end="url(#arrowAmber)" fill="none" />
+
+    <!-- Node C4: DB Encrypt & Write -->
+    <rect x="870" y="60" width="240" height="195" rx="12" fill="#252636" stroke="#81B29A" stroke-width="1.5" />
+    <text x="885" y="88" font-size="14" font-weight="bold" fill="#81B29A">Re-encrypt &amp; Write DB</text>
+    <text x="885" y="112" font-size="12" fill="#F4F1DE">Vault Master Key (Same as #1):</text>
+    <text x="885" y="132" font-size="12" fill="#A0A0B0">• Encrypts items for local DB</text>
+    <text x="885" y="152" font-size="12" fill="#A0A0B0">• AES-256-GCM + PBKDF2</text>
+    <text x="885" y="172" font-size="12" fill="#81B29A">• Inserts into SQLite DB</text>
+    <text x="885" y="192" font-size="12" fill="#81B29A">• Updates UI Vault list</text>
+  </g>
+</svg>

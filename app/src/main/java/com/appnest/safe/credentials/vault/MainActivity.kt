@@ -107,7 +107,7 @@ class MainActivity : FragmentActivity() {
                     else -> {
                         val navigationState = rememberNavigationState(
                             startRoute = Screen.Home,
-                            topLevelRoutes = setOf(Screen.Home, Screen.Favorites, Screen.Settings)
+                            topLevelRoutes = setOf(Screen.Home, Screen.Favorites, Screen.BackupPayload, Screen.HelpSupport, Screen.Settings)
                         )
                         val navigator = remember(navigationState) { Navigator(navigationState) }
 
@@ -116,13 +116,13 @@ class MainActivity : FragmentActivity() {
                         val currentKey = activeStack?.lastOrNull() ?: currentTopLevel
 
                         val adPlacement = when (currentKey) {
-                            is Screen.Home, is Screen.Favorites, is Screen.Settings -> AdPlacement.BOTTOM
+                            is Screen.Home, is Screen.Favorites, is Screen.BackupPayload, is Screen.HelpSupport, is Screen.Settings -> AdPlacement.BOTTOM
                             is Screen.AddCredential -> AdPlacement.TOP
                             is Screen.CredentialDetails -> AdPlacement.BOTTOM
                             else -> AdPlacement.NONE
                         }
 
-                        val showBottomBar = currentKey in listOf(Screen.Home, Screen.Favorites, Screen.Settings)
+                        val showBottomBar = currentKey in listOf(Screen.Home, Screen.Favorites, Screen.BackupPayload, Screen.HelpSupport, Screen.Settings)
 
                         Scaffold(
                             modifier = Modifier.fillMaxSize(),

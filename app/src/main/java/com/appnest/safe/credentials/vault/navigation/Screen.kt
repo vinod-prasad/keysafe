@@ -2,6 +2,8 @@ package com.appnest.safe.credentials.vault.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -28,6 +30,9 @@ sealed interface Screen : NavKey {
     data object BackupPayload : Screen
 
     @Serializable
+    data object HelpSupport : Screen
+
+    @Serializable
     data class AddCredential(
         val credentialId: String? = null,
         val key: String? = null,
@@ -48,5 +53,7 @@ sealed class BottomNavItem(
 ) {
     object Accounts : BottomNavItem(Screen.Home, R.string.nav_accounts, Icons.Default.Key)
     object Favorites : BottomNavItem(Screen.Favorites, R.string.nav_favorites, Icons.Default.Star)
+    object Backup : BottomNavItem(Screen.BackupPayload, R.string.nav_backup, Icons.Default.CloudUpload)
+    object Support : BottomNavItem(Screen.HelpSupport, R.string.nav_help_support, Icons.AutoMirrored.Filled.HelpOutline)
     object Settings : BottomNavItem(Screen.Settings, R.string.nav_settings, Icons.Default.Settings)
 }

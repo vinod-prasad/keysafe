@@ -61,7 +61,7 @@ fun PinAuthScreen(expectedPin: String, onAuthenticated: () -> Unit) {
                 if (it.length <= 8) pin = it
                 isError = false
             },
-            label = { Text(stringResource(R.string.label_vault_pin)) },
+            label = { Text(stringResource(R.string.enter_pin_hint)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
