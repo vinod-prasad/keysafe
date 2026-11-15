@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.domain.model.ComputerCredential
 
 @Composable
@@ -65,7 +67,7 @@ fun ComputerDetailTemplate(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = if (isDecrypted) activeCredential.username else "System User: Encrypted",
+                    text = if (isDecrypted) activeCredential.username else stringResource(R.string.label_system_username) + ": Encrypted",
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -135,5 +137,26 @@ fun ComputerDetailTemplate(
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun ComputerDetailTemplatePreview() {
+    com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme {
+        ComputerDetailTemplate(
+            activeCredential = com.appnest.safe.credentials.vault.domain.model.ComputerCredential(
+                id = "1",
+                siteOrApp = "Work MacBook Pro",
+                osType = "Mac",
+                username = "admin",
+                password = "Password123"
+            ),
+            isDecrypted = true,
+            isPasswordVisible = false,
+            onTogglePasswordVisibility = {},
+            onRequestUnlock = {},
+            onCopy = { _, _ -> }
+        )
     }
 }

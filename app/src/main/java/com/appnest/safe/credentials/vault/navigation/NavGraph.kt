@@ -5,12 +5,11 @@ import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
-import com.appnest.safe.credentials.vault.ui.screens.AddCredentialScreen
-import com.appnest.safe.credentials.vault.ui.screens.CredentialDetailsScreen
 import com.appnest.safe.credentials.vault.ui.screens.FavoriteScreen
 import com.appnest.safe.credentials.vault.ui.screens.HomeScreen
 import com.appnest.safe.credentials.vault.ui.screens.SearchScreen
 import com.appnest.safe.credentials.vault.ui.screens.SettingsScreen
+import com.appnest.safe.credentials.vault.ui.screens.CredentialDetailsScreen
 
 @Composable
 fun AppNavDisplay(
@@ -26,15 +25,39 @@ fun AppNavDisplay(
                 FavoriteScreen(navigator = navigator)
             }
             entry<Screen.Settings> {
-                SettingsScreen()
+                SettingsScreen(
+                    onNavigateToBackup = { navigator.navigate(Screen.BackupPayload) }
+                )
             }
-            entry<Screen.AddCredential> { key ->
-                AddCredentialScreen(
-                    credentialId = key.credentialId,
-                    encryptionKey = key.key,
-                    initialCategory = key.category,
+            entry<Screen.BackupPayload> {
+                com.appnest.safe.credentials.vault.ui.screens.BackupPayloadScreen(
                     onNavigateBack = { navigator.goBack() }
                 )
+            }
+            entry<Screen.AddCredential> { key ->
+                when (key.category?.lowercase()) {
+                    "card" -> {
+                        com.appnest.safe.credentials.vault.ui.screens.add.AddCardScreen(
+                            credentialId = key.credentialId,
+                            key = key.key,
+                            onNavigateBack = { navigator.goBack() }
+                        )
+                    }
+                    "computer" -> {
+                        com.appnest.safe.credentials.vault.ui.screens.add.AddComputerScreen(
+                            credentialId = key.credentialId,
+                            key = key.key,
+                            onNavigateBack = { navigator.goBack() }
+                        )
+                    }
+                    else -> {
+                        com.appnest.safe.credentials.vault.ui.screens.add.AddSiteScreen(
+                            credentialId = key.credentialId,
+                            key = key.key,
+                            onNavigateBack = { navigator.goBack() }
+                        )
+                    }
+                }
             }
             entry<Screen.Search> {
                 SearchScreen(

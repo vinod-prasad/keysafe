@@ -13,7 +13,7 @@ class KeySafeDatabaseHelper(context: Context) : SQLiteOpenHelper(
 
     companion object {
         private const val DATABASE_NAME = "keysafe_vault.db"
-        private const val DATABASE_VERSION = 4
+        private const val DATABASE_VERSION = 5
 
         // Master Table: Credentials
         const val TABLE_CREDENTIALS = "credentials"
@@ -28,6 +28,7 @@ class KeySafeDatabaseHelper(context: Context) : SQLiteOpenHelper(
         const val COLUMN_CRED_IS_FAVORITE = "is_favorite"
 
         // Card Template Columns
+        const val COLUMN_CARD_TYPE = "card_type"
         const val COLUMN_CARD_ISSUER = "card_issuer"
         const val COLUMN_CARD_NAME_ON_CARD = "card_name_on_card"
         const val COLUMN_CARD_NUMBER = "card_number"
@@ -61,6 +62,7 @@ class KeySafeDatabaseHelper(context: Context) : SQLiteOpenHelper(
                 $COLUMN_CRED_PIN TEXT,
                 $COLUMN_CRED_NOTE TEXT,
                 $COLUMN_CRED_IS_FAVORITE INTEGER NOT NULL DEFAULT 0,
+                $COLUMN_CARD_TYPE TEXT,
                 $COLUMN_CARD_ISSUER TEXT,
                 $COLUMN_CARD_NAME_ON_CARD TEXT,
                 $COLUMN_CARD_NUMBER TEXT,
@@ -103,6 +105,9 @@ class KeySafeDatabaseHelper(context: Context) : SQLiteOpenHelper(
             runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CARD_VALIDITY_END TEXT") }
             runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CARD_CVV TEXT") }
             runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_OS_TYPE TEXT") }
+        }
+        if (oldVersion < 5) {
+            runCatching { db.execSQL("ALTER TABLE $TABLE_CREDENTIALS ADD COLUMN $COLUMN_CARD_TYPE TEXT") }
         }
     }
 

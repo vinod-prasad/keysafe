@@ -33,21 +33,41 @@ class CredentialDetailsViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             val existingItem = getCredentialUseCase.getById(siteNameOrId)
-            val targetSite = existingItem?.siteOrApp ?: siteNameOrId
+            val targetSite = existingItem?.let { item ->
+                when (item.category.lowercase()) {
+                    "card" -> {
+                        val issuer = item.cardIssuer?.takeIf { it.isNotBlank() } ?: "Bank"
+                        val type = item.cardType?.takeIf { it.isNotBlank() } ?: "Credit"
+                        "$issuer $type"
+                    }
+                    "computer" -> item.osType
+                    else -> item.siteOrApp
+                }
+            } ?: siteNameOrId
+
             _uiState.value = _uiState.value.copy(siteName = targetSite)
 
             getCredentialUseCase.getAll().collect { allList ->
                 val matching = allList.filter { item ->
                     val matchesCategoryGroup = when (item.category.lowercase()) {
-                        "card" -> item.cardIssuer.orEmpty().equals(siteNameOrId, ignoreCase = true) || item.siteOrApp.equals(siteNameOrId, ignoreCase = true) || item.id == siteNameOrId
-                        "computer" -> item.osType.orEmpty().equals(siteNameOrId, ignoreCase = true) || item.siteOrApp.equals(siteNameOrId, ignoreCase = true) || item.id == siteNameOrId
-                        else -> item.siteOrApp.equals(siteNameOrId, ignoreCase = true) || item.id == siteNameOrId
+                        "card" -> {
+                            val issuer = item.cardIssuer?.takeIf { it.isNotBlank() } ?: "Bank"
+                            val type = item.cardType?.takeIf { it.isNotBlank() } ?: "Credit"
+                            val combinedName = "$issuer $type"
+                            combinedName.equals(targetSite, ignoreCase = true) || item.id == siteNameOrId
+                        }
+                        "computer" -> item.osType?.equals(targetSite, ignoreCase = true) == true || item.id == siteNameOrId
+                        else -> item.siteOrApp.equals(targetSite, ignoreCase = true) || item.id == siteNameOrId
                     }
                     matchesCategoryGroup && (!favoritesOnly || item.isFavorite)
                 }
                 val displayTitle = matching.firstOrNull()?.let { item ->
                     when (item.category.lowercase()) {
-                        "card" -> item.cardIssuer?.ifBlank { item.siteOrApp } ?: item.siteOrApp
+                        "card" -> {
+                            val issuer = item.cardIssuer?.takeIf { it.isNotBlank() } ?: "Bank"
+                            val type = item.cardType?.takeIf { it.isNotBlank() } ?: "Credit"
+                            "$issuer $type"
+                        }
                         "computer" -> item.osType?.ifBlank { item.siteOrApp } ?: item.siteOrApp
                         else -> item.siteOrApp
                     }

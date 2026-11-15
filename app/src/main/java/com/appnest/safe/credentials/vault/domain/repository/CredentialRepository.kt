@@ -13,4 +13,5 @@ interface CredentialRepository {
     suspend fun seedMockData(encryptionKey: String)
     suspend fun toggleFavorite(id: String, isFavorite: Boolean)
     suspend fun deleteCredential(id: String)
+    suspend fun deleteAllCredentials()
 }

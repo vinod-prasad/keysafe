@@ -25,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.domain.model.SiteCredential
 
 @Composable
@@ -49,7 +51,7 @@ fun SiteDetailTemplate(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = if (isDecrypted) activeCredential.username else "Encrypted Username",
+                    text = if (isDecrypted) activeCredential.username else "Encrypted " + stringResource(R.string.label_username),
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -120,5 +122,25 @@ fun SiteDetailTemplate(
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun SiteDetailTemplatePreview() {
+    com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme {
+        SiteDetailTemplate(
+            activeCredential = SiteCredential(
+                id = "1",
+                siteOrApp = "google.com",
+                username = "appnestcare@gmail.com",
+                password = "GoogleSecurePassword123!"
+            ),
+            isDecrypted = true,
+            isPasswordVisible = false,
+            onTogglePasswordVisibility = {},
+            onRequestUnlock = {},
+            onCopy = { _, _ -> }
+        )
     }
 }

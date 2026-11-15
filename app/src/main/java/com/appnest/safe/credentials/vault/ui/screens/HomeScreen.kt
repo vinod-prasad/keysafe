@@ -51,6 +51,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appnest.safe.credentials.vault.R
+import androidx.compose.ui.res.stringResource
 import com.appnest.safe.credentials.vault.navigation.Navigator
 import com.appnest.safe.credentials.vault.navigation.Screen
 import com.appnest.safe.credentials.vault.ui.base.components.CategoryOrDomainLogo
@@ -84,7 +85,13 @@ fun HomeScreen(
     HomeScreenContent(
         uiState = uiState,
         onSearchClick = { navigator.navigate(Screen.Search) },
-        onAddCredentialClick = { showCategoryDialog = true },
+        onAddCredentialClick = { activeCategory -> 
+            if (activeCategory == "All") {
+                showCategoryDialog = true
+            } else {
+                navigator.navigate(Screen.AddCredential(category = activeCategory))
+            }
+        },
         onCredentialItemClick = { siteItem ->
             navigator.navigate(Screen.CredentialDetails(siteItem.siteName))
         },
@@ -94,27 +101,32 @@ fun HomeScreen(
     )
 }
 
+
 @Composable
 fun HomeScreenContent(
     uiState: HomeUiState,
     onSearchClick: () -> Unit = {},
-    onAddCredentialClick: () -> Unit = {},
+    onAddCredentialClick: (String) -> Unit = {},
     onCredentialItemClick: (SiteGroupItem) -> Unit = {},
     onSeedMockData: (String) -> Unit = {}
 ) {
-    val categories = listOf("All", "Site", "Card", "Computer")
-    var selectedCategory by remember { mutableStateOf(categories[0]) }
+    val categoryKeys = listOf("All", "Site", "Card", "Computer")
+    var selectedCategoryKey by remember { mutableStateOf(categoryKeys[0]) }
     var showSeedKeyDialog by remember { mutableStateOf(false) }
 
-    val displayedGroupedCredentials = remember(selectedCategory, uiState.rawCredentials) {
-        val filteredRaw = if (selectedCategory == "All") {
+    val displayedGroupedCredentials = remember(selectedCategoryKey, uiState.rawCredentials) {
+        val filteredRaw = if (selectedCategoryKey == "All") {
             uiState.rawCredentials
         } else {
-            uiState.rawCredentials.filter { it.category.equals(selectedCategory, ignoreCase = true) }
+            uiState.rawCredentials.filter { it.category.equals(selectedCategoryKey, ignoreCase = true) }
         }
         filteredRaw.groupBy { cred ->
             val rawName = when (cred.category.lowercase()) {
-                "card" -> cred.cardIssuer.takeIf { !it.isNullOrBlank() } ?: cred.siteOrApp
+                "card" -> {
+                    val issuer = cred.cardIssuer.takeIf { !it.isNullOrBlank() } ?: "Bank"
+                    val type = cred.cardType.takeIf { !it.isNullOrBlank() } ?: "Credit"
+                    "$issuer $type"
+                }
                 "computer" -> cred.osType.takeIf { !it.isNullOrBlank() } ?: "Computer"
                 else -> cred.siteOrApp
             }
@@ -132,9 +144,9 @@ fun HomeScreenContent(
 
     if (showSeedKeyDialog) {
         EncryptionKeyPromptDialog(
-            title = "Encrypt & Load Initial Vault Data",
-            subtitle = "Enter your secret Encryption Key / PIN to encrypt and load the initial sample credentials. This key will be used to encrypt all vault data and is never stored locally.",
-            confirmButtonText = "Load & Encrypt",
+            title = stringResource(R.string.seed_mock_data_title),
+            subtitle = stringResource(R.string.seed_mock_data_subtitle),
+            confirmButtonText = stringResource(R.string.seed_mock_data_button),
             onConfirm = { key ->
                 showSeedKeyDialog = false
                 onSeedMockData(key)
@@ -156,11 +168,17 @@ fun HomeScreenContent(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(categories) { category ->
+            items(categoryKeys) { key ->
+                val label = when (key) {
+                    "Site" -> stringResource(R.string.category_site)
+                    "Card" -> stringResource(R.string.category_card)
+                    "Computer" -> stringResource(R.string.category_computer)
+                    else -> stringResource(R.string.category_all)
+                }
                 CategoryChip(
-                    text = category,
-                    isSelected = selectedCategory == category,
-                    onClick = { selectedCategory = category }
+                    text = label,
+                    isSelected = selectedCategoryKey == key,
+                    onClick = { selectedCategoryKey = key }
                 )
             }
         }
@@ -179,7 +197,7 @@ fun HomeScreenContent(
                 modifier = Modifier.fillMaxSize()
             ) {
                 item {
-                    AddPasswordRow(onClick = onAddCredentialClick)
+                    AddPasswordRow(onClick = { onAddCredentialClick(selectedCategoryKey) })
                     HorizontalDivider(modifier = Modifier.padding(start = 16.dp, end = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                 }
 
@@ -203,13 +221,13 @@ fun HomeScreenContent(
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
                                 Text(
-                                    text = "Load & Encrypt Mock Data",
+                                    text = stringResource(R.string.seed_mock_data_row_title),
                                     fontSize = 16.sp,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
-                                    text = "Enter key to transform & populate initial credentials",
+                                    text = stringResource(R.string.seed_mock_data_row_subtitle),
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -273,7 +291,7 @@ fun TopSearchSection(onSearchClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text(text = "Search", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
+                Text(text = stringResource(R.string.action_search), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
             }
         }
 
@@ -338,7 +356,7 @@ fun AddPasswordRow(onClick: () -> Unit) {
         }
         Spacer(modifier = Modifier.width(16.dp))
         Text(
-            text = "Add credential",
+            text = stringResource(R.string.title_add_credential),
             fontSize = 16.sp,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium
@@ -372,7 +390,7 @@ fun CredentialListItem(credential: SiteGroupItem, onClick: () -> Unit) {
 
         if (credential.accountCount > 0) {
             Text(
-                text = "${credential.accountCount} accounts",
+                text = stringResource(R.string.accounts_count, credential.accountCount),
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

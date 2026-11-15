@@ -21,6 +21,7 @@ sealed class Credential {
     open val updatedAt: Long = System.currentTimeMillis()
 
     // Card Specific Template Fields
+    open val cardType: String? = null
     open val cardIssuer: String? = null
     open val cardNameOnCard: String? = null
     open val cardNumber: String? = null
@@ -46,6 +47,7 @@ sealed class Credential {
             note: String? = null,
             securityQuestions: List<SecurityQuestion> = emptyList(),
             isFavorite: Boolean = false,
+            cardType: String? = null,
             cardIssuer: String? = null,
             cardNameOnCard: String? = null,
             cardNumber: String? = null,
@@ -61,6 +63,7 @@ sealed class Credential {
                     id = id,
                     siteOrApp = siteOrApp,
                     category = "Card",
+                    cardType = cardType ?: "Credit",
                     cardIssuer = cardIssuer ?: "",
                     cardNameOnCard = cardNameOnCard ?: "",
                     cardNumber = cardNumber ?: "",
@@ -131,6 +134,7 @@ data class CardCredential(
     override val id: String,
     override val siteOrApp: String,
     override val category: String = "Card",
+    override val cardType: String = "Credit",
     override val cardIssuer: String = "",
     override val cardNameOnCard: String = "",
     override val cardNumber: String = "",

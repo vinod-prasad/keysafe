@@ -24,7 +24,7 @@ class SettingsManager(private val context: Context) {
     }
 
     val isAppLockEnabledFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[IS_APP_LOCK_ENABLED] ?: true
+        preferences[IS_APP_LOCK_ENABLED] ?: false
     }
 
     val idleLockTimeoutMinsFlow: Flow<Int> = context.dataStore.data.map { preferences ->

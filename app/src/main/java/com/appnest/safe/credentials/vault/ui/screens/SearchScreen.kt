@@ -44,6 +44,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.domain.model.Credential
 import com.appnest.safe.credentials.vault.ui.base.components.CategoryOrDomainLogo
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
@@ -91,7 +93,7 @@ fun SearchScreenContent(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = onSearchQueryChange,
-                        placeholder = { Text("Search", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        placeholder = { Text(stringResource(R.string.action_search), color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester),
@@ -108,13 +110,13 @@ fun SearchScreenContent(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_close))
                     }
                 },
                 actions = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { onSearchQueryChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.action_close))
                         }
                     }
                 },
@@ -133,7 +135,7 @@ fun SearchScreenContent(
         ) {
             if (filteredList.isNotEmpty()) {
                 Text(
-                    text = "${filteredList.size} Passwords",
+                    text = "${filteredList.size} " + stringResource(R.string.category_passwords),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp

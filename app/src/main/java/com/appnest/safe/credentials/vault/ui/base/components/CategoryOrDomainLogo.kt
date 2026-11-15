@@ -70,3 +70,11 @@ fun CategoryOrDomainLogo(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun CategoryOrDomainLogoPreview() {
+    com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme {
+        CategoryOrDomainLogo(category = "Site", nameOrDomain = "google.com")
+    }
+}

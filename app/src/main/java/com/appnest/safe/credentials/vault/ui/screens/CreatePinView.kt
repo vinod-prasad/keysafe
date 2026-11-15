@@ -23,6 +23,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 
 @Composable
@@ -38,15 +40,15 @@ fun CreatePinView(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Set App PIN", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.create_pin_title), fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Create a 4 to 8 digit PIN.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.enter_pin_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedTextField(
             value = pin,
             onValueChange = { if (it.length <= 8) pin = it },
-            label = { Text("Enter PIN") },
+            label = { Text(stringResource(R.string.enter_pin_hint)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true
@@ -58,14 +60,14 @@ fun CreatePinView(
                 if (it.length <= 8) confirmPin = it
                 isError = false
             },
-            label = { Text("Confirm PIN") },
+            label = { Text(stringResource(R.string.confirm_pin_hint)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
             isError = isError
         )
         if (isError) {
-            Text("PINs do not match or are too short", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+            Text(stringResource(R.string.error_pin_mismatch), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -82,11 +84,11 @@ fun CreatePinView(
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text("Save PIN")
+            Text(stringResource(R.string.action_save))
         }
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(onClick = onCancel) {
-            Text("Cancel")
+            Text(stringResource(R.string.action_cancel))
         }
     }
 }

@@ -8,6 +8,8 @@ import com.appnest.safe.credentials.vault.domain.usecase.SeedMockDataUseCase
 import com.appnest.safe.credentials.vault.domain.usecase.ToggleFavoriteUseCase
 import org.koin.dsl.module
 
+import com.appnest.safe.credentials.vault.domain.backup.VaultBackupManager
+
 val domainModule = module {
     single { AppLockManager() }
     single { SaveCredentialUseCase(get()) }
@@ -15,4 +17,5 @@ val domainModule = module {
     single { DecryptCredentialUseCase(get()) }
     single { SeedMockDataUseCase(get()) }
     single { ToggleFavoriteUseCase(get()) }
+    single { VaultBackupManager() }
 }

@@ -29,6 +29,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import androidx.compose.ui.window.Dialog
 
 @Composable
@@ -50,14 +52,14 @@ fun PinVerificationDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Verify PIN",
+                    text = stringResource(R.string.dialog_verify_pin_title),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Enter your App PIN to proceed",
+                    text = stringResource(R.string.dialog_verify_pin_subtitle),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -70,7 +72,7 @@ fun PinVerificationDialog(
                         if (it.length <= 8) enteredPin = it
                         isError = false
                     },
-                    label = { Text("PIN") },
+                    label = { Text(stringResource(R.string.label_vault_pin)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
@@ -79,7 +81,7 @@ fun PinVerificationDialog(
                 )
                 if (isError) {
                     Text(
-                        text = "Incorrect PIN",
+                        text = stringResource(R.string.error_pin_incorrect),
                         color = MaterialTheme.colorScheme.error,
                         fontSize = 12.sp,
                         modifier = Modifier
@@ -95,7 +97,7 @@ fun PinVerificationDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.action_cancel))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -107,10 +109,21 @@ fun PinVerificationDialog(
                             }
                         }
                     ) {
-                        Text("Verify")
+                        Text(stringResource(R.string.action_verify))
                     }
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun PinVerificationDialogPreview() {
+    com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme {
+        PinVerificationDialog(
+            onSuccess = {},
+            onDismiss = {}
+        )
     }
 }

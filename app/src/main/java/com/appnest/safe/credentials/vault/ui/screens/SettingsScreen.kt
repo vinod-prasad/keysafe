@@ -9,8 +9,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -25,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.data.SettingsManager
 import com.appnest.safe.credentials.vault.domain.AppLockManager
 import kotlinx.coroutines.launch
@@ -32,6 +37,7 @@ import org.koin.compose.koinInject
 
 @Composable
 fun SettingsScreen(
+    onNavigateToBackup: () -> Unit = {},
     settingsManager: SettingsManager = koinInject(),
     appLockManager: AppLockManager = koinInject()
 ) {
@@ -43,7 +49,7 @@ fun SettingsScreen(
     val timeoutOptions = listOf(0, 1, 5, 10, 15, 30) // 0 = Immediately
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Settings", fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
+        Text(stringResource(R.string.settings_title), fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
         Spacer(modifier = Modifier.height(24.dp))
 
         // App Lock Toggle
@@ -52,8 +58,8 @@ fun SettingsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("App Lock", fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
-                Text("Require Biometric/PIN to unlock", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.settings_app_lock), fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
+                Text(stringResource(R.string.settings_app_lock_desc), fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Switch(
                 checked = isAppLockEnabled,
@@ -72,13 +78,13 @@ fun SettingsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Idle Lock Time", fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
-                    Text("Lock app after inactivity", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.settings_idle_timeout), fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
+                    Text(stringResource(R.string.settings_idle_timeout_desc), fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 
                 Box {
                     Text(
-                        text = if (idleLockTimeoutMins == 0) "Immediately" else "$idleLockTimeoutMins mins",
+                        text = if (idleLockTimeoutMins == 0) stringResource(R.string.timeout_immediately) else stringResource(R.string.timeout_mins, idleLockTimeoutMins),
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { expanded = true }.padding(8.dp)
                     )
@@ -88,7 +94,7 @@ fun SettingsScreen(
                     ) {
                         timeoutOptions.forEach { mins ->
                             DropdownMenuItem(
-                                text = { Text(if (mins == 0) "Immediately" else "$mins mins") },
+                                text = { Text(if (mins == 0) stringResource(R.string.timeout_immediately) else stringResource(R.string.timeout_mins, mins)) },
                                 onClick = {
                                     scope.launch { settingsManager.setIdleLockTimeoutMins(mins) }
                                     appLockManager.updateIdleTimeout(mins)
@@ -99,6 +105,26 @@ fun SettingsScreen(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Backup & Restore Vault (.ksvault)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onNavigateToBackup() }
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.title_backup_restore), fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
+                Text("Export encrypted .ksvault or import backup", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(
+                imageVector = Icons.Default.CloudUpload,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))

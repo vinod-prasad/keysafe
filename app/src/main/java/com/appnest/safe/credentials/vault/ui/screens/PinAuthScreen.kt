@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 
 import androidx.compose.foundation.rememberScrollState
@@ -48,9 +50,9 @@ fun PinAuthScreen(expectedPin: String, onAuthenticated: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("KeySafe is locked", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+        Text(stringResource(R.string.app_locked_title), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
         Spacer(modifier = Modifier.height(8.dp))
-        Text("Enter your App PIN to unlock", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.pin_unlock_title), color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(32.dp))
 
         OutlinedTextField(
@@ -59,7 +61,7 @@ fun PinAuthScreen(expectedPin: String, onAuthenticated: () -> Unit) {
                 if (it.length <= 8) pin = it
                 isError = false
             },
-            label = { Text("PIN") },
+            label = { Text(stringResource(R.string.label_vault_pin)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
@@ -67,7 +69,7 @@ fun PinAuthScreen(expectedPin: String, onAuthenticated: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         )
         if (isError) {
-            Text("Incorrect PIN", color = MaterialTheme.colorScheme.error, fontSize = 12.sp, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
+            Text(stringResource(R.string.error_pin_incorrect), color = MaterialTheme.colorScheme.error, fontSize = 12.sp, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -85,7 +87,7 @@ fun PinAuthScreen(expectedPin: String, onAuthenticated: () -> Unit) {
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text("Unlock")
+            Text(stringResource(R.string.action_unlock))
         }
     }
 }

@@ -55,6 +55,7 @@ class CredentialRepositoryImpl(
                 put(KeySafeDatabaseHelper.COLUMN_CRED_IS_FAVORITE, if (credential.isFavorite) 1 else 0)
 
                 // Card fields
+                put(KeySafeDatabaseHelper.COLUMN_CARD_TYPE, credential.cardType)
                 put(KeySafeDatabaseHelper.COLUMN_CARD_ISSUER, credential.cardIssuer)
                 put(KeySafeDatabaseHelper.COLUMN_CARD_NAME_ON_CARD, encCardNameOnCard)
                 put(KeySafeDatabaseHelper.COLUMN_CARD_NUMBER, encCardNumber)
@@ -222,6 +223,13 @@ class CredentialRepositoryImpl(
         refreshFlow()
     }
 
+    override suspend fun deleteAllCredentials() = withContext(Dispatchers.IO) {
+        val db = dbHelper.writableDatabase
+        db.delete(KeySafeDatabaseHelper.TABLE_SECURITY_QUESTIONS, null, null)
+        db.delete(KeySafeDatabaseHelper.TABLE_CREDENTIALS, null, null)
+        refreshFlow()
+    }
+
     private fun refreshFlow() {
         val list = mutableListOf<Credential>()
         val db = dbHelper.readableDatabase
@@ -245,8 +253,15 @@ class CredentialRepositoryImpl(
     private fun readCredentialFromCursor(db: SQLiteDatabase, c: Cursor): Credential {
         val id = c.getString(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_ID))
         val site = c.getString(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_SITE)) ?: ""
+        
+        // Handle potentially missing category column gracefully
         val categoryIndex = c.getColumnIndex(KeySafeDatabaseHelper.COLUMN_CRED_CATEGORY)
-        val category = if (categoryIndex != -1) c.getString(categoryIndex) ?: "Site" else "Site"
+        val category = if (categoryIndex != -1 && !c.isNull(categoryIndex)) {
+            c.getString(categoryIndex)
+        } else {
+            "Site" // Fallback to Site if null or missing
+        }
+        
         val siteLogo = c.getString(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_SITE_LOGO))
         val username = c.getString(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_USERNAME)) ?: ""
         val password = c.getString(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_PASSWORD)) ?: ""
@@ -255,6 +270,7 @@ class CredentialRepositoryImpl(
         val isFavorite = c.getInt(c.getColumnIndexOrThrow(KeySafeDatabaseHelper.COLUMN_CRED_IS_FAVORITE)) == 1
 
         // Card fields
+        val cardType = getNullableString(c, KeySafeDatabaseHelper.COLUMN_CARD_TYPE)
         val cardIssuer = getNullableString(c, KeySafeDatabaseHelper.COLUMN_CARD_ISSUER)
         val cardNameOnCard = getNullableString(c, KeySafeDatabaseHelper.COLUMN_CARD_NAME_ON_CARD)
         val cardNumber = getNullableString(c, KeySafeDatabaseHelper.COLUMN_CARD_NUMBER)
@@ -297,6 +313,7 @@ class CredentialRepositoryImpl(
             password = password,
             pin = pin,
             note = note,
+            cardType = cardType,
             cardIssuer = cardIssuer,
             cardNameOnCard = cardNameOnCard,
             cardNumber = cardNumber,

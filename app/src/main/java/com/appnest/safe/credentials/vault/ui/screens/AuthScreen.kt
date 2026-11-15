@@ -18,6 +18,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,18 +71,18 @@ fun AuthScreen(onAuthenticated: () -> Unit) {
             modifier = Modifier.fillMaxSize(0.2f)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text("KeySafe is locked", fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
+        Text(stringResource(R.string.app_locked_title), fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = { showBiometricPrompt() }) {
-            Text("Unlock")
+            Text(stringResource(R.string.action_unlock))
         }
     }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 private fun AuthScreenPreview() {
-    KeySafeTheme() {
+    KeySafeTheme {
         AuthScreen(onAuthenticated = {})
     }
 }

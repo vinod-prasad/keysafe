@@ -22,7 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.ui.base.components.CustomTextField
+import com.appnest.safe.credentials.vault.utils.UiText
 import com.appnest.safe.credentials.vault.ui.base.components.SecureTextField
 
 @Composable
@@ -32,6 +35,9 @@ fun ComputerTemplateForm(
     username: String,
     password: String,
     isPasswordVisible: Boolean,
+    computerNameError: UiText? = null,
+    usernameError: UiText? = null,
+    passwordError: UiText? = null,
     onComputerNameChanged: (String) -> Unit,
     onOsTypeChanged: (String) -> Unit,
     onUsernameChanged: (String) -> Unit,
@@ -42,17 +48,20 @@ fun ComputerTemplateForm(
     val availableOsList = listOf("Windows", "Mac", "Linux", "Android")
 
     Column {
-        Text("Computer Name / Label", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.label_computer_name) + " *", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(8.dp))
         CustomTextField(
             value = computerName,
             onValueChange = onComputerNameChanged,
-            placeholder = "e.g. Work MacBook Pro, Home Desktop",
+            placeholder = stringResource(R.string.hint_computer_name),
+            isMandatory = true,
+            isError = computerNameError != null,
+            errorMessage = computerNameError?.asString(),
             onCopy = { onCopy(computerName, "Computer Name") }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
-        Text("Operating System (OS)", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.label_os_type) + " *", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(8.dp))
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -92,18 +101,44 @@ fun ComputerTemplateForm(
         CustomTextField(
             value = username,
             onValueChange = onUsernameChanged,
-            placeholder = "System Username / Admin",
+            placeholder = stringResource(R.string.label_system_username),
+            isMandatory = true,
             shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomEnd = 0.dp, bottomStart = 0.dp),
+            isError = usernameError != null,
+            errorMessage = usernameError?.asString(),
             onCopy = { onCopy(username, "Username") }
         )
         SecureTextField(
             value = password,
             onValueChange = onPasswordChanged,
-            placeholder = "System Password",
+            placeholder = stringResource(R.string.label_system_password),
+            isMandatory = true,
             isTextVisible = isPasswordVisible,
             onToggleVisibility = onTogglePasswordVisibility,
             shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomEnd = 8.dp, bottomStart = 8.dp),
+            isError = passwordError != null,
+            errorMessage = passwordError?.asString(),
             onCopy = { onCopy(password, "Password") }
+        )
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun ComputerTemplateFormPreview() {
+    com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme {
+        ComputerTemplateForm(
+            computerName = "Work MacBook Pro",
+            osType = "Mac",
+            username = "admin",
+            password = "Password123",
+            isPasswordVisible = false,
+            onComputerNameChanged = {},
+            onOsTypeChanged = {},
+            onUsernameChanged = {},
+            onPasswordChanged = {},
+            onTogglePasswordVisibility = {},
+            onCopy = { _, _ -> }
         )
     }
 }

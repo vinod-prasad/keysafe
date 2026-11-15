@@ -3,93 +3,120 @@
 Welcome, AI Agent! This file contains guidelines and context to help you contribute effectively to the **KeySafe** project.
 
 ## Project Overview
-KeySafe is an Android application focused on secure credential and password management (a digital vault). Security, data integrity, and privacy are the highest priorities for this project.
+KeySafe is a secure Android credential vault application built with Kotlin and Jetpack Compose. Security, data integrity, clean architecture, and privacy are the highest priorities for this project.
 
-### Features
-- **App Theme**: Supports Dark, Light, and System default modes.
-- **Localization**: Multi-language support (English and Hindi).
-- **Edge-to-Edge UI**: Full edge-to-edge layout support, seamlessly drawing behind system bars.
-- **Adaptive Layouts**: Full support for Foldable screens, as well as seamless transitions between Portrait and Landscape orientations.
-- **Custom Typography**: Support for custom fonts across the application UI.
+### Core Features
+- **App Theme**: Supports Dark, Light, and System default modes with custom font styling and font size scaling.
+- **Localization & Multi-Language Support**: All user-facing text (titles, labels, buttons, placeholders, dialogs, error messages, navigation items) is strictly externalized into `res/values/strings.xml`. ViewModels use a `UiText` wrapper (`UiText.StringResource`) to deliver localized error messages without holding Android `Context`.
+- **Edge-to-Edge UI**: Full edge-to-edge layout support drawing seamlessly behind system bars with keyboard `imePadding()` management on scrollable forms.
+- **Adaptive Layouts**: Support for Foldables, tablets, and orientation changes (Portrait/Landscape).
 - **On-the-fly Encryption/Decryption**:
-  - The encryption key is **never** saved locally. 
-  - Sensitive data is strictly stored as encrypted text. 
-  - Whenever encryption or decryption is required, the app must prompt the user via a UI popup to enter their PIN/Master Password to process it on the fly.
-  - Encryption logic must be fully supported across all target platforms (Android/iOS/Web).
-- **Secure Sharing**: Users can share credentials with others via email, WhatsApp, SMS, or other mediums. The app will first decrypt the selected data, then re-encrypt it using the recipient's key. This generates a protected data file that can be transmitted through any medium but can only be accessed/imported by the KeySafe app.
-- **Export/Import**: Users can export and import their encrypted vault data (credentials, passwords, pins, etc.) securely across devices.
-- **Centralized Monetization (MainActivity)**: The `MainActivity` must include a dedicated `BannerSpace` (Top/Bottom) and a navigation listener. This allows centralized control of ad monetization across screen changes without duplicating ad logic in every individual screen.
+  - Encryption keys are **never** saved locally. 
+  - Sensitive vault data stored in local SQLite database is encrypted on-the-fly using military-grade **AES-256-GCM + PBKDF2-HMAC-SHA256** key derivation with unique random Salt & IV per entry via `AESDataTransformer` (with automatic fallback support for legacy AES-CBC entries).
+  - Whenever encryption or decryption is needed, the app prompts the user via a UI popup to enter their key/PIN to process it on the fly.
+- **Offline Favicon Caching**: Domain favicons are fetched via Google Favicon API and aggressively cached offline using a custom Coil `ImageLoaderFactory` (`KeySafeApp.kt` & `ImageLoaderUtils.kt`).
+- **Encrypted Vault Backup & Restore (`.ksvault`)**:
+  - File Format: Recommended `.ksvault` binary format protected with AES-256-GCM encryption + PBKDF2-HMAC-SHA256 (100,000 iterations) key derivation and authentication tag verification.
+  - File Naming Convention: Postfixed with date timestamp `yyyy-MM-dd_HH-mm-ss` (e.g., `keysafe_backup_2026-03-30_14-30-45.ksvault`).
+  - Export Channels: Supports local file saving (`CreateDocument`) and cross-app sharing (`Intent.ACTION_SEND` to WhatsApp, Gmail, Drive).
+  - Export Options: Export all vault items or user-selected specific credentials.
+  - Import Strategies: Support for `Merge` (adds new/updated items into vault) and `Override` (clears vault and replaces completely from backup file).
+- **Centralized Monetization (MainActivity)**: `MainActivity` tracks navigation destination changes to show global AdBanners at the **BOTTOM** (dashboard/lists) or **TOP** (form screens when soft keyboard is active).
 
-### App Workflow & Lifecycle
-1. **Launch & Updates**: On cold start or resume, the app instantly checks for Google Play updates via `AppUpdateManager` and forces an `IMMEDIATE` update if available.
-2. **First-Time Setup**: If no authentication method is registered locally, the app displays `SetupAuthScreen` prompting the user to choose between "Device Lock" (Biometrics/System PIN) or creating a custom 4-8 digit "App PIN".
-3. **Authentication**:
-   - If the app is locked, `MainActivity` intercepts the navigation and shows `AuthScreen` (Biometric prompt) or `PinAuthScreen` (Custom PIN pad).
-   - Once successfully authenticated, the UI unlocks and loads the `AppNavGraph`.
-4. **Navigation & Ad Routing**:
-   - The user lands on `HomeScreen`. The `BottomNavigationBar` is only visible on `Home`, `Checkup`, and `Settings`.
-   - The `MainActivity` globally tracks screen changes to display the AdBanner at the **BOTTOM** (for lists/dashboards) or **TOP** (for forms like `AddCredential` where the keyboard opens).
-5. **Idle Lock & Backgrounding**: 
-   - Managed via `AppLockManager` attached to `ProcessLifecycleOwner`.
-   - When the app is minimized to the background, it records a timestamp. Upon returning to the foreground, if the idle time exceeds the user-configured timeout (e.g., Immediately, 5m, 10m, 30m), the app forces a re-authentication.
+---
 
-### Screens(UI interface)
-- **Registration/Login**: Authentication screen for verifying user access to the vault (e.g., Master Password, Biometrics).
-- **Home/Dashboard**: Main list screen with a top search bar, category chips/filters (e.g., All, Passwords, Passkeys), an "Add password" action, and a list of saved credentials grouped by site/app (displaying account count). Includes a Bottom Navigation Bar (Accounts, Checkup, Settings).
-- **Add/Edit Credential**: Form screen to add or edit a password. Features fields for "Site" (with a "Select app" button to pick from installed apps), Username, Password (with eye toggle for visibility), "Suggest strong password" action, and Notes.
-- **App Selector (Dialog/BottomSheet)**: A scrollable list of installed apps on the device (with app icons) to quickly select an app when adding a new credential.
-- **Search Screen**: Real-time filtering screen where users can search for credentials, showing results matching the search query immediately. The keyboard auto-focuses on entry.
-- **Credential Details**: A screen displaying all accounts linked to a specific site/app. Features copy-to-clipboard icons for username and password, a view password toggle, and buttons to Share, Edit, and Delete the credential.
-- **Settings Screen**: Contains global toggles for App Lock, Idle Timeout durations, Theme Mode overrides (System/Dark/Light), Font Styles (utilizing Google Downloadable Fonts), and Font Size scaling modifiers.
+## Architecture & Code Organization
 
-## Tech Stack & Architecture
-*(Note: Technology choices must remain compatible with Kotlin Multiplatform (KMP) and Compose Multiplatform (CMP) to support future migration)*
-- **Language**: Kotlin
-- **Platform**: Android SDK (Structured for future KMP/CMP migration)
-- **Architecture**: MVVM / Clean Architecture (Domain and Data layers must be platform-agnostic)
-- **UI**: Jetpack Compose only (No XML for screen UI; build with CMP compatibility in mind)
-- **Navigation**: Nav3 API (Latest) / KMP-compatible navigation (e.g., JetBrains Navigation Compose)
+### Technology Stack
+- **Language**: Kotlin (Idiomatic, platform-agnostic domain/data structure ready for KMP/CMP)
+- **UI Framework**: Jetpack Compose (Material 3 warm peach palette)
+- **Navigation**: Jetpack Navigation 3 API (`NavDisplay` with `Screen` key definitions)
+- **Dependency Injection**: Koin DI split into segregated modules:
+  - `dataModule` (Database, Repository, DataStore Settings, AES Transformer)
+  - `domainModule` (AppLockManager, UseCases)
+  - `viewModelModule` (Viewmodel declarations)
 
-- **Asynchronous Programming**: Kotlin Coroutines and Flow
-- **Dependency Injection**: Koin or Kotlin-Inject (Avoid Hilt/Dagger as they are Android/JVM-specific and break KMP)
-- **Network API**: Ktor Client (KMP compatible)
-- **Local Storage/Security**: Use KMP-friendly solutions where possible (e.g., Multiplatform Settings, SQLDelight, Room KMP, or abstracted secure storage interfaces)
-- **Business Logic**: Core logic must be platform-agnostic and fully supported across Android, iOS, and Web.
-- **Data and Domain Modules**: Must remain completely decoupled from platform-specific APIs so they can be reused directly by all targets.
+### Modular Screen & ViewModel Hierarchy (`ui/screens/add/` & `ui/viewmodel/add/`)
+To prevent monolithic God classes, the credential creation/editing flow is segregated by category using OOP inheritance:
+- **ViewModels**:
+  - `BaseAddCredentialViewModel`: Base abstract class managing common state (title, PIN, notes, favorite, security questions) and saving lifecycle.
+  - `AddSiteViewModel`: Category-specific validation and `SiteCredential` mapping.
+  - `AddCardViewModel`: Category-specific validation, MM/YY date range logic, and `CardCredential` mapping.
+  - `AddComputerViewModel`: Category-specific validation and `ComputerCredential` mapping.
+- **Screen Composables**:
+  - `BaseAddCredentialScreen`: Wraps scaffold, top bar, encryption dialog, and favorite toggle.
+  - `SharedFormElements`: Renders optional/collapsible PIN, Note, and Security Questions fields.
+  - `AddSiteScreen`, `AddCardScreen`, `AddComputerScreen`: Render category-specific form templates.
 
+---
+
+## App Workflow & Lifecycle
+
+### 1. Launch & Play Store Updates
+- On cold start and resume, `MainActivity` checks for updates via `AppUpdateManager` and triggers an `IMMEDIATE` update if available.
+
+### 2. First Launch & Optional App Lock
+- **App Lock is disabled by default on first launch**. The user lands directly on `HomeScreen` without being forced to set up a PIN/Biometrics.
+- If the user enables **"App Lock"** in `SettingsScreen` (and no auth method is set), `MainActivity` presents `SetupAuthScreen` prompting them to choose between "Device Lock" (Biometrics/System PIN) or creating a custom 4-8 digit "App PIN".
+- When App Lock is enabled and locked, `MainActivity` intercepts navigation to present `AuthScreen` (Biometric prompt) or `PinAuthScreen` (Custom PIN pad).
+- Idle lock timeouts (Immediately, 1m, 5m, 10m, 15m, 30m) are tracked via `AppLockManager` attached to `ProcessLifecycleOwner`.
+
+### 3. Category Selection & Navigation Flow
+- **Home Screen Category Chips** (`All`, `Site`, `Card`, `Computer`):
+  - Selecting a category chip filters the credential list.
+  - Tapping **"Add credential"** while a specific category chip (`Site`, `Card`, `Computer`) is active routes **directly** to that category's form (`AddSiteScreen`, `AddCardScreen`, or `AddComputerScreen`).
+  - Tapping **"Add credential"** while the `All` chip is active opens `CategorySelectionDialog` popup for the user to select the category.
+
+---
+
+## Form Validation & Template Rules
+
+### 1. Category-Specific Mandatory Fields & Visual Indicators
+Mandatory fields are visually indicated with a red asterisk (`*`):
+- **Site**: Site / Domain Name (`*`), Username (`*`), Password (`*`).
+- **Card**: Card Name / Label (`*`), Card Type (Credit/Debit), Bank / Issuer Name (`*`).
+- **Computer**: Computer Name / Label (`*`), Operating System (Windows/Mac/Linux/Android), Username (`*`), Password (`*`).
+
+### 2. Dynamic Input Validation Rules
+- **Inline Error Clearing**: Error messages clear instantly as the user types/modifies the text in the field. Clearing a field removes inline errors until validation is re-triggered on Save.
+- **Domain Validation**: Real-time domain regex validation (`^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`) on domain field loss of focus.
+- **Card Validity Dates (MM/YY)**:
+  - Input is capped at 4 digits (`MMYY`) and formatted visually as `MM/YY`.
+  - Typing a digit `2-9` for the month automatically prefixes a `0` (e.g., typing `5` becomes `05`).
+  - Validates month `MM` range (`01` to `12`).
+  - Ensures `Start (MM/YY) < Expiry (MM/YY)` (expiry date must be after start date).
+
+### 3. Collapsible Optional Form Sections
+- **Note** and **Security Questions** are optional and **hidden by default** when adding a new credential.
+- Tapping `"+ Add Note"` or `"+ Add Security Question"` expands the respective section on demand.
+- When editing an existing credential that contains a note or security questions, the sections render expanded automatically.
+- **Hidden Select App Feature**: The "Select app" button in `SiteTemplateForm` is hidden/commented out for future releases.
+
+### 4. Delete Confirmation
+- Credential deletion cannot occur directly. Tapping **Delete** must present an `AlertDialog` confirmation prompt (`dialog_delete_title`, `dialog_delete_message`). Deletion is only executed if the user explicitly confirms the action in the dialog.
+
+---
+
+## Design & UI Guidelines
+
+### 1. Previews
+Every `@Composable` screen and base component (`ui/screens`, `ui/screens/add`, `ui/base/components`, `ui/base/dialogs`, `ui/base/templates`) must include `@Preview(showBackground = true)` with mock harnesses for visual inspection in Android Studio.
+
+### 2. Localization
+Never hardcode user-visible strings in Composables or ViewModels. Use `stringResource(R.string.key)` in Composables and `UiText.StringResource(R.string.key)` in ViewModels.
+
+---
 
 ## Agent Guidelines
 
-### 1. Adhere Policies
-- **CopyRight**: Don't create and use any copyright content and images in the application. Ensure all assets are open-source, royalty-free, or originally created.
-- **Text Content**: Avoid text content for misleading labels and messages in the app. Be clear, transparent, and accurate in all user-facing text.
-- **AdMob Policy**: Strictly adhere to AdMob placement policies. Do not place ads that obscure content, encourage accidental clicks, or violate content restrictions.
-- **Google Play Console**: Ensure all app features, permissions, and data safety measures comply with Google Play Developer Policies. Do not request unnecessary sensitive permissions.
-- **Monetization platform**: Ensure compliance with Google AdMob/AdSense or any other integrated monetization platforms. Avoid fraudulent ad requests, intrusive placements, or artificial impressions.
+### 1. Policies & Compliance
+- **Copyright**: Use open-source, royalty-free, or originally created assets.
+- **Play Console & AdMob**: Adhere to AdMob placement policies (do not obscure UI controls or force accidental clicks) and Google Play Developer Policies.
 
-### 2. Security First
-- Never expose sensitive information, keys, or credentials in logs, UI, or unencrypted storage.
-- Always use encrypted storage (e.g., EncryptedSharedPreferences, Android Keystore, SQLCipher) for storing user credentials or master passwords.
-- Audit any third-party dependencies before adding them to ensure they do not introduce security vulnerabilities.
+### 2. Security Practices
+- Never log sensitive credentials, PINs, or raw database keys.
+- Ensure encryption keys are processed on-the-fly and never persisted in memory or local storage.
 
-### 3. Code Quality & Style
-- Write idiomatic Kotlin code. Use Kotlin standard library functions (e.g., `let`, `apply`, `map`) where appropriate.
-- Follow the official Kotlin coding conventions.
-- Ensure all public functions and classes have appropriate KDoc comments.
-- Keep functions small and focused on a single responsibility.
-
-### 4. File Modifications
-- When modifying files, prefer targeted surgical edits (`replace_file_content` or `multi_replace_file_content`) over rewriting entire files to minimize the risk of destroying unsaved user changes.
-- Ensure all imports are correctly managed after adding or removing code.
-
-### 5. Testing
-- Ensure that any new business logic is covered by Unit Tests.
-- Mock external dependencies where appropriate.
-- Verify security-critical logic strictly through tests.
-
-### 6. Build & Context
-- Do not run shell scripts that modify files on the disk directly (no `sed`, `awk`, etc.). Rely on the IDE's built-in file management tools.
-- Before proposing massive architectural changes, verify the current project structure using `find_files` or `code_search` to align with the existing patterns.
-
----
-*Note to Agents: Always double-check your code for potential memory leaks, Adhere Policies, lifecycle mismatches, and thread-safety issues.*
+### 3. File Modification & Safety
+- Use built-in file editing tools (`replace_file_content`, `multi_replace_file_content`, `write_file`).
+- Do NOT use shell scripts (`sed`, `awk`, redirection) to edit files.

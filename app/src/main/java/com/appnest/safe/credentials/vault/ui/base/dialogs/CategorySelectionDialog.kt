@@ -27,6 +27,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import androidx.compose.ui.window.Dialog
 
 data class CategoryOption(
@@ -43,20 +45,20 @@ fun CategorySelectionDialog(
 ) {
     val categories = listOf(
         CategoryOption(
-            title = "Site / Login",
-            subtitle = "Websites, social accounts, and app logins",
+            title = stringResource(R.string.category_site),
+            subtitle = stringResource(R.string.category_site_desc),
             icon = Icons.Default.Language,
             categoryKey = "Site"
         ),
         CategoryOption(
-            title = "Card (Credit/Debit)",
-            subtitle = "Credit cards, debit cards, and banking cards",
+            title = stringResource(R.string.category_card),
+            subtitle = stringResource(R.string.category_card_desc),
             icon = Icons.Default.CreditCard,
             categoryKey = "Card"
         ),
         CategoryOption(
-            title = "Computer (PC/Laptop)",
-            subtitle = "Windows, Mac, Linux, and Android systems",
+            title = stringResource(R.string.category_computer),
+            subtitle = stringResource(R.string.category_computer_desc),
             icon = Icons.Default.DesktopWindows,
             categoryKey = "Computer"
         )
@@ -70,7 +72,7 @@ fun CategorySelectionDialog(
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    text = "Select Category",
+                    text = stringResource(R.string.dialog_select_category_title),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -124,9 +126,20 @@ fun CategorySelectionDialog(
                         .align(Alignment.End)
                         .padding(top = 12.dp)
                 ) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.action_cancel), color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun CategorySelectionDialogPreview() {
+    com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme {
+        CategorySelectionDialog(
+            onDismissRequest = {},
+            onCategorySelected = {}
+        )
     }
 }

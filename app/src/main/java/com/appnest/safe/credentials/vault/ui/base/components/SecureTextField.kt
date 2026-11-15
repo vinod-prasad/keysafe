@@ -20,6 +20,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -34,12 +39,32 @@ fun SecureTextField(
     modifier: Modifier = Modifier,
     shape: RoundedCornerShape = RoundedCornerShape(8.dp),
     keyboardType: KeyboardType = KeyboardType.Password,
+    isError: Boolean = false,
+    errorMessage: String? = null,
+    isMandatory: Boolean = false,
     onCopy: (() -> Unit)? = null
 ) {
-    TextField(
-        value = value,
-        onValueChange = onValueChange,
-        placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+    Column {
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            isError = isError,
+            placeholder = { 
+                if (isMandatory) {
+                    Text(
+                        text = buildAnnotatedString {
+                            append(placeholder)
+                            append(" ")
+                            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
+                                append("*")
+                            }
+                        },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
         modifier = modifier.fillMaxWidth(),
         shape = shape,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
@@ -76,4 +101,28 @@ fun SecureTextField(
         ),
         singleLine = true
     )
+        if (isError && errorMessage != null) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun SecureTextFieldPreview() {
+    com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme {
+        SecureTextField(
+            value = "SecretPassword123",
+            onValueChange = {},
+            placeholder = "Password",
+            isTextVisible = false,
+            onToggleVisibility = {},
+            isMandatory = true
+        )
+    }
 }

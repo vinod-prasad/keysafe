@@ -53,7 +53,7 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             val settingsManager: com.appnest.safe.credentials.vault.data.SettingsManager by inject()
-            val isAppLockEnabled by settingsManager.isAppLockEnabledFlow.collectAsState(initial = true)
+            val isAppLockEnabled by settingsManager.isAppLockEnabledFlow.collectAsState(initial = false)
             val isLocked by appLockManager.isLocked.collectAsState()
             val idleTimeout by settingsManager.idleLockTimeoutMinsFlow.collectAsState(initial = 5)
 
@@ -72,7 +72,7 @@ class MainActivity : FragmentActivity() {
 
             KeySafeTheme(themeMode = themeMode, fontStyle = fontStyle, fontSize = fontSize) {
                 when {
-                    authMethod == "UNSET" -> {
+                    isAppLockEnabled && authMethod == "UNSET" -> {
                         com.appnest.safe.credentials.vault.ui.screens.SetupAuthScreen(
                             onSelectDeviceLock = {
                                 scope.launch {

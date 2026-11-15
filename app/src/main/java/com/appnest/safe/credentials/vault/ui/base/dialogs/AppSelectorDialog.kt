@@ -24,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import androidx.compose.ui.window.Dialog
 import com.appnest.safe.credentials.vault.data.mockdata.MockDataProvider
 
@@ -46,7 +48,7 @@ fun AppSelectorDialog(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Select app",
+                    text = stringResource(R.string.action_select_app),
                     fontSize = 18.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 16.dp)
                 )
@@ -83,9 +85,20 @@ fun AppSelectorDialog(
                     onClick = onDismissRequest,
                     modifier = Modifier.align(Alignment.End).padding(top = 8.dp)
                 ) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.action_cancel), color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun AppSelectorDialogPreview() {
+    com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme {
+        AppSelectorDialog(
+            onDismissRequest = {},
+            onAppSelected = {}
+        )
     }
 }

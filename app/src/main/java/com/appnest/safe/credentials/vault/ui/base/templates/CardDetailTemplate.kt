@@ -25,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.domain.model.CardCredential
 
 @Composable
@@ -49,7 +51,7 @@ fun CardDetailTemplate(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        Text("Bank / Issuer", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.label_card_issuer), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(activeCredential.cardIssuer, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                     }
                     IconButton(
@@ -79,9 +81,9 @@ fun CardDetailTemplate(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        Text("Name on Card", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.label_name_on_card), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
-                            text = if (isDecrypted) activeCredential.cardNameOnCard else "Encrypted Name",
+                            text = if (isDecrypted) activeCredential.cardNameOnCard else "Encrypted " + stringResource(R.string.label_name_on_card),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -120,7 +122,7 @@ fun CardDetailTemplate(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        Text("Card Number", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.label_card_number), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             text = if (isDecrypted) activeCredential.cardNumber else "•••• •••• •••• •••• (Encrypted)",
                             fontSize = 16.sp,
@@ -229,5 +231,30 @@ fun CardDetailTemplate(
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun CardDetailTemplatePreview() {
+    com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme {
+        CardDetailTemplate(
+            activeCredential = com.appnest.safe.credentials.vault.domain.model.CardCredential(
+                id = "1",
+                siteOrApp = "HDFC Card",
+                cardType = "Credit",
+                cardIssuer = "HDFC Bank",
+                cardNameOnCard = "JOHN DOE",
+                cardNumber = "1234567812345678",
+                cardValidityStart = "0522",
+                cardValidityEnd = "0529",
+                cardCvv = "123"
+            ),
+            isDecrypted = true,
+            isCvvVisible = false,
+            onToggleCvvVisibility = {},
+            onRequestUnlock = {},
+            onCopy = { _, _ -> }
+        )
     }
 }

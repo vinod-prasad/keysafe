@@ -35,6 +35,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import androidx.compose.ui.window.Dialog
 
 @Composable
@@ -80,7 +82,7 @@ fun EncryptionKeyPromptDialog(
                         keyInput = it
                         isError = false
                     },
-                    label = { Text("Encryption Key / PIN") },
+                    label = { Text(stringResource(R.string.label_vault_pin)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -95,7 +97,7 @@ fun EncryptionKeyPromptDialog(
                 )
                 if (isError) {
                     Text(
-                        text = "Encryption Key cannot be empty",
+                        text = stringResource(R.string.error_encryption_key_empty),
                         color = MaterialTheme.colorScheme.error,
                         fontSize = 12.sp,
                         modifier = Modifier
@@ -111,7 +113,7 @@ fun EncryptionKeyPromptDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.action_cancel))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -128,5 +130,19 @@ fun EncryptionKeyPromptDialog(
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun EncryptionKeyPromptDialogPreview() {
+    com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme {
+        EncryptionKeyPromptDialog(
+            title = "Enter Secret Key",
+            subtitle = "Please enter your master encryption key to decrypt this credential.",
+            confirmButtonText = "Decrypt",
+            onConfirm = {},
+            onDismiss = {}
+        )
     }
 }

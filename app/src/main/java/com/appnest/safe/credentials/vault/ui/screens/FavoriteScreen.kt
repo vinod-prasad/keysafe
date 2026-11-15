@@ -39,6 +39,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.navigation.Navigator
 import com.appnest.safe.credentials.vault.navigation.Screen
 import com.appnest.safe.credentials.vault.ui.base.components.CategoryOrDomainLogo
@@ -80,7 +82,7 @@ fun FavoriteScreenContent(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Favorites", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.category_favorites), fontWeight = FontWeight.Bold)
                     }
                 },
                 windowInsets = WindowInsets(0, 0, 0, 0),
@@ -112,14 +114,14 @@ fun FavoriteScreenContent(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "No Favorites Yet",
+                            text = stringResource(R.string.no_favorites_title),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Tap the star icon on any credential item to quickly access it here.",
+                            text = stringResource(R.string.no_favorites_desc),
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -184,7 +186,7 @@ fun FavoriteListItem(item: SiteGroupItem, onClick: () -> Unit) {
 
         if (item.accountCount > 0) {
             Text(
-                text = "${item.accountCount} accounts",
+                text = stringResource(R.string.accounts_count, item.accountCount),
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

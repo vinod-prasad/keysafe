@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -62,6 +64,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.appnest.safe.credentials.vault.domain.model.CardCredential
 import com.appnest.safe.credentials.vault.domain.model.ComputerCredential
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.domain.model.Credential
 import com.appnest.safe.credentials.vault.domain.model.SecurityQuestion
 import com.appnest.safe.credentials.vault.domain.model.SiteCredential
@@ -206,6 +210,7 @@ fun CredentialDetailItem(
     var passwordVisible by remember { mutableStateOf(false) }
     var cvvVisible by remember { mutableStateOf(false) }
     var pinVisible by remember { mutableStateOf(false) }
+    var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
 
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -213,15 +218,47 @@ fun CredentialDetailItem(
     fun copyToClipboard(text: String, label: String) {
         if (text.isNotBlank()) {
             clipboardManager.setText(AnnotatedString(text))
-            Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.copied_to_clipboard, label), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    if (showDeleteConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmationDialog = false },
+            title = {
+                Text(text = stringResource(R.string.dialog_delete_title))
+            },
+            text = {
+                Text(text = stringResource(R.string.dialog_delete_message))
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmationDialog = false
+                        onDelete()
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.action_delete),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirmationDialog = false }
+                ) {
+                    Text(text = stringResource(R.string.action_cancel))
+                }
+            }
+        )
     }
 
     if (showKeyDialog) {
         EncryptionKeyPromptDialog(
-            title = "Enter Encryption Key",
-            subtitle = "Enter your secret key/PIN for this credential. Entered key is never stored.",
-            confirmButtonText = if (keyDialogAction == KeyAction.EDIT) "Unlock to Edit" else "Decrypt",
+            title = stringResource(R.string.dialog_encrypt_save_title),
+            subtitle = stringResource(R.string.dialog_encrypt_save_subtitle),
+            confirmButtonText = if (keyDialogAction == KeyAction.EDIT) stringResource(R.string.action_edit) else stringResource(R.string.action_verify),
             onConfirm = { enteredKey ->
                 showKeyDialog = false
                 onDecryptCredential(credential, enteredKey) { dec, err ->
@@ -322,7 +359,7 @@ fun CredentialDetailItem(
                 ) {
                     Text(
                         text = when {
-                            decryptedCredential == null -> "PIN: Encrypted"
+                            decryptedCredential == null -> stringResource(R.string.label_pin_encrypted)
                             pinVisible -> "PIN: ${activeCredential.pin}"
                             else -> "PIN: ••••"
                         },
@@ -368,7 +405,7 @@ fun CredentialDetailItem(
         if (questions.isNotEmpty()) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Security Questions",
+                text = stringResource(R.string.label_security_questions),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -409,7 +446,7 @@ fun CredentialDetailItem(
                             ) {
                                 Icon(
                                     imageVector = if (decryptedCredential != null) Icons.Default.ContentCopy else Icons.Default.Lock,
-                                    contentDescription = "Copy question",
+                                    contentDescription = stringResource(R.string.action_copy),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -422,7 +459,7 @@ fun CredentialDetailItem(
                         ) {
                             Text(
                                 text = when {
-                                    decryptedCredential == null -> "A: Encrypted"
+                                    decryptedCredential == null -> stringResource(R.string.label_answer_encrypted)
                                     answerVisible -> "A: ${sq.answer}"
                                     else -> "A: ••••••••••••"
                                 },
@@ -444,7 +481,7 @@ fun CredentialDetailItem(
                                     val icon = if (decryptedCredential == null) Icons.Default.Lock else if (answerVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
                                     Icon(
                                         imageVector = icon,
-                                        contentDescription = "Toggle answer visibility",
+                                        contentDescription = stringResource(R.string.action_unlock),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -456,7 +493,7 @@ fun CredentialDetailItem(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.ContentCopy,
-                                            contentDescription = "Copy answer",
+                                            contentDescription = stringResource(R.string.action_copy),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
@@ -482,7 +519,7 @@ fun CredentialDetailItem(
             ) {
                 Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.CenterStart) {
                     Text(
-                        text = if (decryptedCredential != null) activeCredential.note!! else "Encrypted Note",
+                        text = if (decryptedCredential != null) activeCredential.note!! else stringResource(R.string.label_note_encrypted),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -497,7 +534,7 @@ fun CredentialDetailItem(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(onClick = { /* Share action */ }) {
-                Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Default.Share, contentDescription = stringResource(R.string.action_share), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -516,11 +553,11 @@ fun CredentialDetailItem(
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Edit", color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Text(stringResource(R.string.action_edit), color = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
 
                 Button(
-                    onClick = onDelete,
+                    onClick = { showDeleteConfirmationDialog = true },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                     shape = RoundedCornerShape(20.dp)
                 ) {
@@ -531,7 +568,7 @@ fun CredentialDetailItem(
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Delete", color = MaterialTheme.colorScheme.onErrorContainer)
+                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.onErrorContainer)
                 }
             }
         }

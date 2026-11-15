@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.R
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 // Add CreatePinView Import implicitly through same package
 
@@ -62,14 +64,14 @@ fun SetupAuthScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                "Secure Your Vault",
+                stringResource(R.string.setup_auth_title),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "How would you like to unlock KeySafe?",
+                stringResource(R.string.setup_auth_subtitle),
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -85,7 +87,7 @@ fun SetupAuthScreen(
             ) {
                 Icon(Icons.Default.Fingerprint, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                 Spacer(modifier = Modifier.size(12.dp))
-                Text("Use Device Lock (Biometric/PIN)", color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = 16.sp)
+                Text(stringResource(R.string.auth_device_lock), color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = 16.sp)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -98,7 +100,7 @@ fun SetupAuthScreen(
             ) {
                 Icon(Icons.Default.Pin, contentDescription = null)
                 Spacer(modifier = Modifier.size(12.dp))
-                Text("Create Custom App PIN", fontSize = 16.sp)
+                Text(stringResource(R.string.auth_custom_pin), fontSize = 16.sp)
             }
         } else {
             CreatePinView(
