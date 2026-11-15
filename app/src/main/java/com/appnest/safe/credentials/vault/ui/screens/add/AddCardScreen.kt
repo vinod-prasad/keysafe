@@ -87,6 +87,7 @@ private fun AddCardScreenPreview() {
             override suspend fun seedMockData(encryptionKey: String) {}
             override suspend fun toggleFavorite(id: String, isFavorite: Boolean) {}
             override suspend fun deleteCredential(id: String) {}
+            override suspend fun deleteAllCredentials() {}
         }
         val saveUseCase = com.appnest.safe.credentials.vault.domain.usecase.SaveCredentialUseCase(dummyRepo)
         val getUseCase = com.appnest.safe.credentials.vault.domain.usecase.GetCredentialUseCase(dummyRepo)
