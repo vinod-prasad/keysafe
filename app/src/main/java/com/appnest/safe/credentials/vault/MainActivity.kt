@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,11 +54,12 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             val settingsManager: com.appnest.safe.credentials.vault.data.SettingsManager by inject()
-            val isAppLockEnabled by settingsManager.isAppLockEnabledFlow.collectAsState(initial = false)
+            val isOnboardingCompleted by settingsManager.isOnboardingCompletedFlow.collectAsState(initial = null)
+            val isAppLockEnabled by settingsManager.isAppLockEnabledFlow.collectAsState(initial = null)
             val isLocked by appLockManager.isLocked.collectAsState()
             val idleTimeout by settingsManager.idleLockTimeoutMinsFlow.collectAsState(initial = 5)
 
-            val authMethod by settingsManager.authMethodFlow.collectAsState(initial = "UNSET")
+            val authMethod by settingsManager.authMethodFlow.collectAsState(initial = null)
             val appPin by settingsManager.appPinFlow.collectAsState(initial = null)
             val themeMode by settingsManager.themeModeFlow.collectAsState(initial = "SYSTEM")
             val fontStyle by settingsManager.fontStyleFlow.collectAsState(initial = "DEFAULT")
@@ -71,8 +73,26 @@ class MainActivity : FragmentActivity() {
             }
 
             KeySafeTheme(themeMode = themeMode, fontStyle = fontStyle, fontSize = fontSize) {
+                if (isOnboardingCompleted == null || isAppLockEnabled == null || authMethod == null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                    )
+                    return@KeySafeTheme
+                }
+
                 when {
-                    isAppLockEnabled && authMethod == "UNSET" -> {
+                    isOnboardingCompleted == false -> {
+                        com.appnest.safe.credentials.vault.ui.screens.onboarding.OnboardingScreen(
+                            onFinish = {
+                                scope.launch {
+                                    settingsManager.setOnboardingCompleted(true)
+                                }
+                            }
+                        )
+                    }
+                    isAppLockEnabled == true && authMethod == "UNSET" -> {
                         com.appnest.safe.credentials.vault.ui.screens.SetupAuthScreen(
                             onSelectDeviceLock = {
                                 scope.launch {
@@ -87,7 +107,7 @@ class MainActivity : FragmentActivity() {
                             }
                         )
                     }
-                    isAppLockEnabled && isLocked -> {
+                    isAppLockEnabled == true && isLocked -> {
                         if (authMethod == "DEVICE") {
                             AuthScreen(onAuthenticated = {
                                 appLockManager.unlock()

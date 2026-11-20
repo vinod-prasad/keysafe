@@ -64,11 +64,11 @@ fun CreatePinView(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
-            isError = isError
+            isError = isError,
+            supportingText = if (isError) {
+                { Text(stringResource(R.string.error_pin_mismatch)) }
+            } else null
         )
-        if (isError) {
-            Text(stringResource(R.string.error_pin_mismatch), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-        }
 
         Spacer(modifier = Modifier.height(32.dp))
 

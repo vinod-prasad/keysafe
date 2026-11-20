@@ -77,6 +77,8 @@
     <string name="size_default">Default</string>
     <string name="size_medium">Medium</string>
     <string name="size_large">Large</string>
+    <string name="settings_take_tour">Take App Tour</string>
+    <string name="settings_take_tour_desc">Replay the onboarding walk-through screens</string>
 
     <!-- 2. Vault Master Key (Encryption / Decryption On-The-Fly) -->
     <string name="dialog_master_key_title">Vault Master Key Required</string>
@@ -152,7 +154,10 @@
     <string name="error_expiry_before_start">Expiry date (MM/YY) must be after Start date (MM/YY)</string>
     <string name="error_dates_full_format">Dates must be in full MM/YY format</string>
     <string name="error_encryption_key_empty">Vault Master Key cannot be empty</string>
+    <string name="error_key_min_length">Key must be at least 4 characters</string>
+    <string name="error_backup_password_min_length">Password must be at least 4 characters</string>
     <string name="error_both_passwords_required">Both Vault Master Key and Backup File Password are required</string>
+    <string name="error_invalid_file_type">Invalid file type. Please select a valid .ksvault backup file.</string>
     <string name="error_credential_not_found">Credential not found.</string>
     <string name="error_decryption_failed">Decryption failed. Check Vault Master Key.</string>
     <string name="error_unknown_save">Unknown error saving credential</string>
@@ -202,6 +207,24 @@
     <string name="backup_select_all">Select All</string>
     <string name="backup_deselect_all">Deselect All</string>
 
+    <!-- Key Info Dialog -->
+    <string name="title_key_info_dialog">Key &amp; Password Specifications</string>
+    <string name="key_info_dialog_desc">KeySafe uses PBKDF2-HMAC-SHA256 to derive a 256-bit AES key for maximum security.\n\n• Minimum Length: 4 characters (8+ recommended)\n• Maximum Limit: Unlimited (PBKDF2 hashes any length into a 256-bit key)\n• Character Criteria: Letters (A-Z, a-z), Digits (0-9), Spaces, and Special Symbols (!@#$%^&amp;*)</string>
+
+    <!-- Onboarding / Walk-through -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get Started</string>
+
+    <string name="onboarding_title_1">Ultimate Security</string>
+    <string name="onboarding_desc_1">Your credentials are protected with military-grade AES-256-GCM encryption and PBKDF2 key derivation.</string>
+
+    <string name="onboarding_title_2">Zero Knowledge</string>
+    <string name="onboarding_desc_2">Your Vault Master Key is never saved locally or transmitted. You are the only one with access.</string>
+
+    <string name="onboarding_title_3">Secure Backups</string>
+    <string name="onboarding_desc_3">Export, share, and import encrypted .ksvault backups across your devices with ease.</string>
+
     <!-- Help & Support -->
     <string name="nav_help_support">Support</string>
     <string name="title_help_support">Help &amp; Support</string>
@@ -212,8 +235,8 @@
     <string name="help_faq_a2">Backups are encrypted using AES-256-GCM + PBKDF2 (100,000 iterations) with a file password set during export. Files can be shared safely over any channel.</string>
     <string name="help_faq_q3">Can I change or disable App Lock?</string>
     <string name="help_faq_a3">Yes! App Lock is optional. You can toggle App Lock, change idle lock timeout, or configure custom PINs in Settings anytime.</string>
-    <string name="help_faq_q4">What are the key types, lengths, and criteria in KeySafe?</string>
-    <string name="help_faq_a4">KeySafe uses 4 distinct key types for maximum security:\n\n1. Vault Master Key: Used on-the-fly to encrypt &amp; decrypt database items and backup files. Minimum 1 character (8+ alphanumeric recommended). NEVER saved anywhere on device or cloud.\n\n2. App Unlock PIN: 4 to 8 numeric digits. Optional PIN used to unlock the app UI on launch or idle timeout.\n\n3. Backup File Password: Custom password set during export to encrypt the .ksvault backup container.\n\n4. Item Security PIN: Optional PIN stored inside a credential item (e.g. ATM card PIN).</string>
+    <string name="help_faq_q4">What are the key length specifications and character criteria in KeySafe?</string>
+    <string name="help_faq_a4">KeySafe uses PBKDF2-HMAC-SHA256 to derive a 256-bit AES key for the following key types:\n\n• Vault Master Key &amp; Backup File Password:\n- Minimum: 4 characters (enforced in app UI)\n- Recommended: 8 to 32+ characters\n- Maximum: Unlimited (PBKDF2 hashes inputs of ANY length into a 256-bit key)\n- Accepted Characters: Letters (A-Z, a-z), Digits (0-9), Spaces, and All Special Symbols (!@#$%^&amp;*)\n\n• App Unlock PIN: 4 to 8 numeric digits (used to unlock app UI)\n\n• Item Security PIN: Optional PIN stored inside a credential item (e.g. ATM card PIN).</string>
     <string name="help_contact_section">Need Assistance?</string>
     <string name="help_email_support">Email Customer Support</string>
     <string name="help_email_support_desc">Send us an email and our team will assist you</string>

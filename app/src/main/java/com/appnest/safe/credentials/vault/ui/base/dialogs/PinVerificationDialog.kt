@@ -36,7 +36,9 @@ import androidx.compose.ui.window.Dialog
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material3.IconButton
 
 @Composable
 fun PinVerificationDialog(
@@ -45,6 +47,11 @@ fun PinVerificationDialog(
 ) {
     var enteredPin by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
+
+    if (showInfoDialog) {
+        KeyInfoDialog(onDismiss = { showInfoDialog = false })
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -91,19 +98,17 @@ fun PinVerificationDialog(
                     leadingIcon = {
                         Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
+                    trailingIcon = {
+                        IconButton(onClick = { showInfoDialog = true }) {
+                            Icon(Icons.Default.Info, contentDescription = "Key Info", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    },
                     isError = isError,
+                    supportingText = if (isError) {
+                        { Text(stringResource(R.string.error_pin_incorrect)) }
+                    } else null,
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (isError) {
-                    Text(
-                        text = stringResource(R.string.error_pin_incorrect),
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 12.sp,
-                        modifier = Modifier
-                            .align(Alignment.Start)
-                            .padding(top = 4.dp)
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 

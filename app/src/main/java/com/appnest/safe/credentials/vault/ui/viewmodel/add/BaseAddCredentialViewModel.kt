@@ -157,8 +157,9 @@ abstract class BaseAddCredentialViewModel(
 
         if (!validateInputs()) return
 
-        if (encryptionKey.isBlank()) {
-            _uiState.value = state.copy(errorMessage = UiText.StringResource(R.string.error_encryption_key_empty))
+        if (encryptionKey.length < 4) {
+            val errRes = if (encryptionKey.isEmpty()) R.string.error_encryption_key_empty else R.string.error_key_min_length
+            _uiState.value = state.copy(errorMessage = UiText.StringResource(errRes))
             return
         }
 

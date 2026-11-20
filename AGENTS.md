@@ -15,9 +15,9 @@ KeySafe is a secure Android credential vault application built with Kotlin and J
   - Sensitive vault data stored in local SQLite database is encrypted on-the-fly using military-grade **AES-256-GCM + PBKDF2-HMAC-SHA256** key derivation with unique random Salt & IV per entry via `AESDataTransformer` (with automatic fallback support for legacy AES-CBC entries).
   - Whenever encryption or decryption is needed, the app prompts the user via a UI popup to enter their key/PIN to process it on the fly.
 - **Key & PIN Terminology & Length Criteria Standard**:
-  - **Vault Master Key** (`Icons.Default.Key`): Min 1 char (8+ recommended). Processed strictly in memory to encrypt/decrypt database entries and `.ksvault` payloads on-the-fly. NEVER saved locally.
+  - **Vault Master Key** (`Icons.Default.Key`): Min 4 chars, recommended 8-32+ chars, unlimited max limit (PBKDF2 hashes any length into 256-bit AES key). Accepts letters, numbers, spaces, and symbols. NEVER saved locally.
   - **App Unlock PIN** (`Icons.Default.Lock` / `Icons.Default.Fingerprint`): 4 to 8 numeric digits. Optional local PIN used to unlock the app UI on launch or idle timeout.
-  - **Backup File Password** (`Icons.Default.Lock`): Min 1 char (8+ recommended). Password set during export to encrypt the `.ksvault` binary backup container.
+  - **Backup File Password** (`Icons.Default.Lock`): Min 4 chars, recommended 8-32+ chars, unlimited max limit. Password set during export to encrypt the `.ksvault` binary backup container.
   - **Item Security PIN** (`label_item_pin`): Optional PIN value stored inside a credential record (e.g. 4-digit ATM card PIN or system login PIN).
 - **Offline Favicon Caching**: Domain favicons are fetched via Google Favicon API and aggressively cached offline using a custom Coil `ImageLoaderFactory` (`KeySafeApp.kt` & `ImageLoaderUtils.kt`).
 ---
@@ -106,6 +106,8 @@ sequenceDiagram
 ```
 
 #### Import Key Criteria & Mechanics:
+- **Strict Extension Validation**: Only files ending with `.ksvault` are accepted by the file picker launcher. Selecting any non-`.ksvault` file automatically rejects the selection and presents an error message (`error_invalid_file_type`).
+- **Progressive UI Reveal**: On the Import Backup tab, initially only the **'Select .ksvault File'** button and instructions are displayed. The Import Strategy options, password input fields, and the 'Import & Restore Vault' action button are revealed once a valid `.ksvault` file is selected.
 - **Backup Password**:
   - **Purpose**: Unlocks and decrypts the `.ksvault` binary container.
   - **Criteria**: Must match the exact password used when exporting the backup. If incorrect, GCM authentication tag verification fails and blocks import (`"Invalid Backup Password or corrupted file"`).
@@ -120,6 +122,7 @@ sequenceDiagram
 ### Technology Stack
 - **Language**: Kotlin (Idiomatic, platform-agnostic domain/data structure ready for KMP/CMP)
 - **UI Framework**: Jetpack Compose (Material 3 warm peach palette)
+- **Material 3 Expressive Features**: KeySafe leverages the `androidx.compose.material3` library (version `1.5.0` or higher) as the primary way to adopt standard Material 3 components and brand new **M3 Expressive features** (such as the `CircularWavyProgressIndicator` loading animations). Components utilizing expressive features require the `@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)` annotation.
 - **Navigation**: Jetpack Navigation 3 API (`NavDisplay` with `Screen` key definitions)
 - **Dependency Injection**: Koin DI split into segregated modules:
   - `dataModule` (Database, Repository, DataStore Settings, AES Transformer)
@@ -145,14 +148,25 @@ To prevent monolithic God classes, the credential creation/editing flow is segre
 ### 1. Launch & Play Store Updates
 - On cold start and resume, `MainActivity` checks for updates via `AppUpdateManager` and triggers an `IMMEDIATE` update if available.
 
-### 2. First Launch & Optional App Lock
+### 2. Onboarding (First-Time Launch & Take Tour)
+- If the `isOnboardingCompleted` flag in `SettingsManager` is `false`, the user is greeted with a 3-step `HorizontalPager` **Onboarding/Walk-through**.
+- Steps introduce KeySafe's core value propositions: Ultimate Security, Zero Knowledge, and Secure Backups.
+- Tapping "Get Started" or "Skip" sets `isOnboardingCompleted` to `true` and advances the app state.
+- **Take Tour**: Users can replay the entire onboarding experience at any time by selecting "Take App Tour" in `SettingsScreen`.
+
+### 3. Optional App Lock (First Launch vs Enabled)
 - **App Lock is disabled by default on first launch**. The user lands directly on `HomeScreen` without being forced to set up a PIN/Biometrics.
 - If the user enables **"App Lock"** in `SettingsScreen` (and no auth method is set), `MainActivity` presents `SetupAuthScreen` prompting them to choose between "Device Lock" (Biometrics/System PIN) or creating a custom 4-8 digit "App PIN".
 - When App Lock is enabled and locked, `MainActivity` intercepts navigation to present `AuthScreen` (Biometric prompt) or `PinAuthScreen` (Custom PIN pad).
 - Idle lock timeouts (Immediately, 1m, 5m, 10m, 15m, 30m) are tracked via `AppLockManager` attached to `ProcessLifecycleOwner`.
 
-### 3. Navigation & Bottom Bar Flow
+### 4. Navigation & Bottom Bar Flow
 - **Bottom Navigation Bar**: Provides instant access to five top-level destinations: **Accounts**, **Favorites**, **Backup** (`.ksvault` export/import), **Support** (FAQs & Customer Email Assistance), and **Settings**.
+- **Debug-Only Mock Data Seeding**: The "Load & Encrypt Mock Data" row on the Home screen is strictly guarded by `BuildConfig.DEBUG` and is hidden in Release (production) builds.
+- **Custom Profile Picture & Interactive Crop (`ProfileImageCropDialog`)**:
+  - Tapping the Profile avatar in the Home top search section opens the system photo picker (`ActivityResultContracts.PickVisualMedia`).
+  - Upon selecting an image file (JPEG, PNG, WEBP), `ProfileImageCropDialog` presents an interactive viewport with a circular frame and zoom slider for positioning.
+  - Tapping "Save" crops the circular avatar bitmap to `context.filesDir/profile_avatar.png` and persists the path in DataStore (`SettingsManager`), replacing the default `AccountCircle` icon.
 - **Home Screen Category Chips** (`All`, `Site`, `Card`, `Computer`):
   - Selecting a category chip filters the credential list.
   - Tapping **"Add credential"** while a specific category chip (`Site`, `Card`, `Computer`) is active routes **directly** to that category's form (`AddSiteScreen`, `AddCardScreen`, or `AddComputerScreen`).
@@ -168,8 +182,9 @@ Mandatory fields are visually indicated with a red asterisk (`*`):
 - **Card**: Card Name / Label (`*`), Card Type (Credit/Debit), Bank / Issuer Name (`*`).
 - **Computer**: Computer Name / Label (`*`), Operating System (Windows/Mac/Linux/Android), Username (`*`), Password (`*`).
 
-### 2. Dynamic Input Validation Rules
+### 2. Dynamic Input Validation Rules & M3 Support
 - **Inline Error Clearing**: Error messages clear instantly as the user types/modifies the text in the field. Clearing a field removes inline errors until validation is re-triggered on Save.
+- **Material 3 Expressive Error States**: All error messages on `OutlinedTextField` and `TextField` MUST use the native Material 3 `supportingText` property (e.g. `supportingText = errorMessage?.let { { Text(it) } }`). Do not render floating `<Text>` fields manually below inputs.
 - **Domain Validation**: Real-time domain regex validation (`^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`) on domain field loss of focus.
 - **Card Validity Dates (MM/YY)**:
   - Input is capped at 4 digits (`MMYY`) and formatted visually as `MM/YY`.
@@ -187,6 +202,10 @@ Mandatory fields are visually indicated with a red asterisk (`*`):
 ### 4. Delete Confirmation
 - Credential deletion cannot occur directly. Tapping **Delete** must present an `AlertDialog` confirmation prompt (`dialog_delete_title`, `dialog_delete_message`). Deletion is only executed if the user explicitly confirms the action in the dialog.
 
+### 5. Key Specifications & Info Dialog (`KeyInfoDialog`)
+- Whenever a user is prompted to enter or set a **Vault Master Key** or **Backup File Password** (`EncryptionKeyPromptDialog`, `PinVerificationDialog`, `BackupPayloadScreen`), an interactive Info Icon (`Icons.Default.Info`) is provided in the field/dialog.
+- Tapping the Info Icon presents `KeyInfoDialog`, explaining the exact key criteria (Min 4 chars, 8+ recommended, unlimited max limit via PBKDF2 256-bit AES derivation, accepting letters, numbers, spaces, and symbols).
+
 ---
 
 ## Design & UI Guidelines
@@ -196,6 +215,37 @@ Every `@Composable` screen and base component (`ui/screens`, `ui/screens/add`, `
 
 ### 2. Localization
 Never hardcode user-visible strings in Composables or ViewModels. Use `stringResource(R.string.key)` in Composables and `UiText.StringResource(R.string.key)` in ViewModels.
+
+---
+
+## Database Schema & Models
+
+### Master Storage: `TABLE_CREDENTIALS`
+- **id**: Primary Key, String (UUID)
+- **category**: Category Type (`Site`, `Card`, `Computer`)
+- **site_or_app**: Title / Domain (Plaintext)
+- **site_logo**: Logo URL (Plaintext)
+- **username**: Base64 Encrypted via AES-256-GCM + PBKDF2
+- **password**: Base64 Encrypted via AES-256-GCM + PBKDF2
+- **pin**: Base64 Encrypted via AES-256-GCM + PBKDF2 (Nullable)
+- **note**: Base64 Encrypted via AES-256-GCM + PBKDF2 (Nullable)
+- **is_favorite**: Boolean (0 or 1)
+- **card_type**: Card Type (`Credit`, `Debit`)
+- **card_issuer**: Bank Name (Plaintext, Nullable)
+- **card_name_on_card**: Base64 Encrypted via AES-256-GCM + PBKDF2 (Nullable)
+- **card_number**: Base64 Encrypted via AES-256-GCM + PBKDF2 (Nullable)
+- **card_validity_start**: MM/YY (Plaintext, Nullable)
+- **card_validity_end**: MM/YY (Plaintext, Nullable)
+- **card_cvv**: Base64 Encrypted via AES-256-GCM + PBKDF2 (Nullable)
+- **os_type**: OS Type (`Windows`, `Mac`, `Linux`, `Android`)
+- **created_at**: Epoch Timestamp
+- **updated_at**: Epoch Timestamp
+
+### Child Storage: `TABLE_SECURITY_QUESTIONS`
+- **id**: Primary Key, String (UUID)
+- **credential_id**: Foreign Key mapping to `TABLE_CREDENTIALS(id)` on Delete Cascade
+- **question**: Base64 Encrypted via AES-256-GCM + PBKDF2
+- **answer**: Base64 Encrypted via AES-256-GCM + PBKDF2
 
 ---
 

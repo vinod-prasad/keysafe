@@ -14,6 +14,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
 
 class SettingsManager(private val context: Context) {
     companion object {
+        val IS_ONBOARDING_COMPLETED = booleanPreferencesKey("is_onboarding_completed")
         val IS_APP_LOCK_ENABLED = booleanPreferencesKey("is_app_lock_enabled")
         val IDLE_LOCK_TIMEOUT_MINS = intPreferencesKey("idle_lock_timeout_mins") // e.g., 0, 5, 10
         val AUTH_METHOD = androidx.datastore.preferences.core.stringPreferencesKey("auth_method") // "UNSET", "DEVICE", "PIN"
@@ -21,6 +22,11 @@ class SettingsManager(private val context: Context) {
         val THEME_MODE = androidx.datastore.preferences.core.stringPreferencesKey("theme_mode") // "SYSTEM", "LIGHT", "DARK"
         val FONT_STYLE = androidx.datastore.preferences.core.stringPreferencesKey("font_style") // "DEFAULT", "SERIF", "MONOSPACE"
         val FONT_SIZE = androidx.datastore.preferences.core.stringPreferencesKey("font_size") // "SMALL", "DEFAULT", "MEDIUM", "LARGE"
+        val PROFILE_IMAGE_PATH = androidx.datastore.preferences.core.stringPreferencesKey("profile_image_path")
+    }
+
+    val isOnboardingCompletedFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[IS_ONBOARDING_COMPLETED] ?: false
     }
 
     val isAppLockEnabledFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
@@ -37,6 +43,12 @@ class SettingsManager(private val context: Context) {
 
     val appPinFlow: Flow<String?> = context.dataStore.data.map { preferences ->
         preferences[APP_PIN]
+    }
+
+    suspend fun setOnboardingCompleted(completed: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[IS_ONBOARDING_COMPLETED] = completed
+        }
     }
 
     suspend fun setAppLockEnabled(enabled: Boolean) {
@@ -73,6 +85,20 @@ class SettingsManager(private val context: Context) {
 
     val fontSizeFlow: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[FONT_SIZE] ?: "DEFAULT"
+    }
+
+    val profileImagePathFlow: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[PROFILE_IMAGE_PATH]
+    }
+
+    suspend fun setProfileImagePath(path: String?) {
+        context.dataStore.edit { preferences ->
+            if (path != null) {
+                preferences[PROFILE_IMAGE_PATH] = path
+            } else {
+                preferences.remove(PROFILE_IMAGE_PATH)
+            }
+        }
     }
 
     suspend fun setThemeMode(mode: String) {

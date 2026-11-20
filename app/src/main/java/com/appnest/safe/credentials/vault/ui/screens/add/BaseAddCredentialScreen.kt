@@ -80,11 +80,10 @@ fun BaseAddCredentialScreen(
                         )
                     }
                     if (uiState.isLoading) {
-                        CircularProgressIndicator(
+                        @OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+                        androidx.compose.material3.CircularWavyProgressIndicator(
                             modifier = Modifier
-                                .size(24.dp)
-                                .padding(end = 8.dp),
-                            strokeWidth = 2.dp
+                                .padding(end = 8.dp)
                         )
                     } else {
                         TextButton(onClick = {

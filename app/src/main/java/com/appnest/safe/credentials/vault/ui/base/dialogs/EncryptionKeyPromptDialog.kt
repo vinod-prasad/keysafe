@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import com.appnest.safe.credentials.vault.R
 import androidx.compose.ui.window.Dialog
@@ -52,6 +53,11 @@ fun EncryptionKeyPromptDialog(
     var keyInput by remember { mutableStateOf("") }
     var keyVisible by remember { mutableStateOf(false) }
     var isError by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
+
+    if (showInfoDialog) {
+        KeyInfoDialog(onDismiss = { showInfoDialog = false })
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -99,24 +105,22 @@ fun EncryptionKeyPromptDialog(
                         Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     trailingIcon = {
-                        IconButton(onClick = { keyVisible = !keyVisible }) {
-                            val icon = if (keyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
-                            Icon(icon, contentDescription = "Toggle visibility")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { showInfoDialog = true }) {
+                                Icon(Icons.Default.Info, contentDescription = "Key Info", tint = MaterialTheme.colorScheme.primary)
+                            }
+                            IconButton(onClick = { keyVisible = !keyVisible }) {
+                                val icon = if (keyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
+                                Icon(icon, contentDescription = "Toggle visibility")
+                            }
                         }
                     },
                     isError = isError,
+                    supportingText = if (isError) {
+                        { Text(if (keyInput.isEmpty()) stringResource(R.string.error_encryption_key_empty) else stringResource(R.string.error_key_min_length)) }
+                    } else null,
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (isError) {
-                    Text(
-                        text = stringResource(R.string.error_encryption_key_empty),
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 12.sp,
-                        modifier = Modifier
-                            .align(Alignment.Start)
-                            .padding(top = 4.dp)
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -130,7 +134,7 @@ fun EncryptionKeyPromptDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            if (keyInput.isNotBlank()) {
+                            if (keyInput.length >= 4) {
                                 onConfirm(keyInput)
                             } else {
                                 isError = true

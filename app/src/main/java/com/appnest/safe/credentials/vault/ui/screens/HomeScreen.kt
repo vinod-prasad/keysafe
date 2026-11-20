@@ -1,5 +1,10 @@
 package com.appnest.safe.credentials.vault.ui.screens
 
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,31 +43,42 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.appnest.safe.credentials.vault.R
-import androidx.compose.ui.res.stringResource
+import com.appnest.safe.credentials.vault.data.SettingsManager
 import com.appnest.safe.credentials.vault.navigation.Navigator
 import com.appnest.safe.credentials.vault.navigation.Screen
 import com.appnest.safe.credentials.vault.ui.base.components.CategoryOrDomainLogo
 import com.appnest.safe.credentials.vault.ui.base.dialogs.CategorySelectionDialog
 import com.appnest.safe.credentials.vault.ui.base.dialogs.EncryptionKeyPromptDialog
+import com.appnest.safe.credentials.vault.ui.base.dialogs.ProfileImageCropDialog
 import com.appnest.safe.credentials.vault.ui.theme.KeySafeTheme
 import com.appnest.safe.credentials.vault.ui.viewmodel.HomeUiState
 import com.appnest.safe.credentials.vault.ui.viewmodel.HomeViewModel
 import com.appnest.safe.credentials.vault.ui.viewmodel.SiteGroupItem
 import com.appnest.safe.credentials.vault.ui.viewmodel.cleanDomainDisplay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
+import java.io.File
+import java.io.FileOutputStream
 
 @Composable
 fun HomeScreen(
@@ -110,6 +126,41 @@ fun HomeScreenContent(
     onCredentialItemClick: (SiteGroupItem) -> Unit = {},
     onSeedMockData: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val settingsManager: SettingsManager = koinInject()
+    val profileImagePath by settingsManager.profileImagePathFlow.collectAsState(initial = null)
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            selectedImageUri = uri
+        }
+    }
+
+    selectedImageUri?.let { uri ->
+        ProfileImageCropDialog(
+            imageUri = uri,
+            onConfirm = { croppedBitmap ->
+                selectedImageUri = null
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val avatarFile = File(context.filesDir, "profile_avatar.png")
+                        FileOutputStream(avatarFile).use { out ->
+                            croppedBitmap.compress(Bitmap.CompressFormat.PNG, 90, out)
+                        }
+                        settingsManager.setProfileImagePath(avatarFile.absolutePath)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            },
+            onDismiss = { selectedImageUri = null }
+        )
+    }
+
     val categoryKeys = listOf("All", "Site", "Card", "Computer")
     var selectedCategoryKey by remember { mutableStateOf(categoryKeys[0]) }
     var showSeedKeyDialog by remember { mutableStateOf(false) }
@@ -161,7 +212,15 @@ fun HomeScreenContent(
             .background(MaterialTheme.colorScheme.background)
     ) {
         // Top App Bar Area (Search & Profile)
-        TopSearchSection(onSearchClick = onSearchClick)
+        TopSearchSection(
+            profileImagePath = profileImagePath,
+            onSearchClick = onSearchClick,
+            onProfileClick = {
+                photoPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }
+        )
 
         // Category Filter Chips
         LazyRow(
@@ -201,7 +260,7 @@ fun HomeScreenContent(
                     HorizontalDivider(modifier = Modifier.padding(start = 16.dp, end = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                 }
 
-                if (uiState.rawCredentials.isEmpty()) {
+                if (uiState.rawCredentials.isEmpty() && com.appnest.safe.credentials.vault.BuildConfig.DEBUG) {
                     item {
                         Row(
                             modifier = Modifier
@@ -252,7 +311,11 @@ fun HomeScreenContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopSearchSection(onSearchClick: () -> Unit) {
+fun TopSearchSection(
+    profileImagePath: String? = null,
+    onSearchClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -295,15 +358,34 @@ fun TopSearchSection(onSearchClick: () -> Unit) {
             }
         }
 
-        // Profile Icon
-        Icon(
-            imageVector = Icons.Default.AccountCircle,
-            contentDescription = "Profile",
-            tint = MaterialTheme.colorScheme.primary,
+        // Profile Avatar
+        val profileFile = remember(profileImagePath) {
+            profileImagePath?.let { File(it) }?.takeIf { it.exists() }
+        }
+
+        Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-        )
+                .clickable(onClick = onProfileClick),
+            contentAlignment = Alignment.Center
+        ) {
+            if (profileFile != null) {
+                AsyncImage(
+                    model = profileFile,
+                    contentDescription = "Profile Avatar",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = "Profile",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
     }
 }
 

@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,11 +65,11 @@ fun PinAuthScreen(expectedPin: String, onAuthenticated: () -> Unit) {
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
             isError = isError,
+            supportingText = if (isError) {
+                { Text(stringResource(R.string.error_pin_incorrect)) }
+            } else null,
             modifier = Modifier.fillMaxWidth()
         )
-        if (isError) {
-            Text(stringResource(R.string.error_pin_incorrect), color = MaterialTheme.colorScheme.error, fontSize = 12.sp, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
-        }
 
         Spacer(modifier = Modifier.height(24.dp))
 

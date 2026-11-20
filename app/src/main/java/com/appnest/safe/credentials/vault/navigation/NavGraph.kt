@@ -9,6 +9,7 @@ import com.appnest.safe.credentials.vault.ui.screens.FavoriteScreen
 import com.appnest.safe.credentials.vault.ui.screens.HomeScreen
 import com.appnest.safe.credentials.vault.ui.screens.SearchScreen
 import com.appnest.safe.credentials.vault.ui.screens.SettingsScreen
+import com.appnest.safe.credentials.vault.ui.screens.BackupPayloadScreen
 import com.appnest.safe.credentials.vault.ui.screens.CredentialDetailsScreen
 
 @Composable
@@ -28,7 +29,7 @@ fun AppNavDisplay(
                 SettingsScreen()
             }
             entry<Screen.BackupPayload> {
-                com.appnest.safe.credentials.vault.ui.screens.BackupPayloadScreen(
+                BackupPayloadScreen(
                     onNavigateBack = { navigator.goBack() }
                 )
             }
