@@ -163,6 +163,10 @@ To prevent monolithic God classes, the credential creation/editing flow is segre
 ### 4. Navigation & Bottom Bar Flow
 - **Bottom Navigation Bar**: Provides instant access to five top-level destinations: **Accounts**, **Favorites**, **Backup** (`.ksvault` export/import), **Support** (FAQs & Customer Email Assistance), and **Settings**.
 - **Debug-Only Mock Data Seeding**: The "Load & Encrypt Mock Data" row on the Home screen is strictly guarded by `BuildConfig.DEBUG` and is hidden in Release (production) builds.
+- **Immersive Fullscreen Feature (`ImmersiveVaultActivity`)**:
+  - Located in new package `com.appnest.safe.credentials.vault.ui.fullscreen`.
+  - Tapping the KeySafe logo icon on the left side of the Home search bar launches `ImmersiveVaultActivity`.
+  - Runs in system-bar-hiding immersive mode (`BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`), displaying zero-knowledge security stats and an Exit Fullscreen action.
 - **Custom Profile Picture & Interactive Crop (`ProfileImageCropDialog`)**:
   - Tapping the Profile avatar in the Home top search section opens the system photo picker (`ActivityResultContracts.PickVisualMedia`).
   - Upon selecting an image file (JPEG, PNG, WEBP), `ProfileImageCropDialog` presents an interactive viewport with a circular frame and zoom slider for positioning.

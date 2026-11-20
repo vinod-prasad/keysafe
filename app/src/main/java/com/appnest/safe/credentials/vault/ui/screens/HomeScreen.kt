@@ -1,5 +1,6 @@
 package com.appnest.safe.credentials.vault.ui.screens
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -323,19 +324,22 @@ fun TopSearchSection(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Logo
+        // Logo (Launches Fullscreen Immersive Activity)
+        val context = LocalContext.current
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(Color.Transparent),
+                .clip(CircleShape)
+                .clickable {
+                    val intent = Intent(context, com.appnest.safe.credentials.vault.ui.fullscreen.ImmersiveVaultActivity::class.java)
+                    context.startActivity(intent)
+                },
             contentAlignment = Alignment.Center
         ) {
             Image(
                 imageVector = ImageVector.vectorResource(id = R.drawable.keysafe),
                 contentDescription = "Logo",
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
+                modifier = Modifier.fillMaxSize()
             )
         }
 
