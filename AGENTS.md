@@ -8,7 +8,7 @@ KeySafe is a secure Android credential vault application built with Kotlin and J
 ### Core Features
 - **App Theme**: Supports Dark, Light, and System default modes with custom font styling and font size scaling.
 - **Localization & Multi-Language Support**: All user-facing text (titles, labels, buttons, placeholders, dialogs, error messages, navigation items) is strictly externalized into `res/values/strings.xml`. ViewModels use a `UiText` wrapper (`UiText.StringResource`) to deliver localized error messages without holding Android `Context`.
-- **Edge-to-Edge UI**: Full edge-to-edge layout support drawing seamlessly behind system bars with keyboard `imePadding()` management on scrollable forms.
+- **Edge-to-Edge UI**: Full edge-to-edge layout support drawing seamlessly behind system bars. For screens nested inside `MainActivity`'s root Scaffold, inner `verticalScroll(rememberScrollState())` handles input field scrolling natively without redundant `.imePadding()` to prevent empty white space gaps and field cutoffs.
 - **Adaptive Layouts**: Support for Foldables, tablets, and orientation changes (Portrait/Landscape).
 - **On-the-fly Encryption/Decryption**:
   - Encryption keys are **never** saved locally. 
